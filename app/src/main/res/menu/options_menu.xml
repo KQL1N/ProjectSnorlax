@@ -2,21 +2,31 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
 
     <item android:id="@+id/locationchoice" android:title="View Restaurant">
-    <menu>
-        <item android:id="@+id/menuguildford" android:checkableBehavior="single"
-            android:title="Guildford"
-            />
+      <menu android:checkableBehavior="single">
+          <item android:id="@+id/menuguildford"
+             android:title="Guildford"
+             />
 
-        <item android:id="@+id/menulondon" android:checkableBehavior="single"
-            android:title="London"
-            />
-
-        <item android:id="@+id/menugloucester" android:checkableBehavior="single"
-            android:title="Gloucester"
-            />
-    </menu>
-
+          <item android:id="@+id/menulondon"
+             android:title="London"
+                />
+        </menu>
     </item>
-        <item android:id="@+id/menuoptions"
-            android:title="Options" />
+
+    <item android:id="@+id/defaultchoice" android:title="Set Default">
+        <menu android:checkableBehavior="single">
+            <item android:id="@+id/defaultlastused"
+                android:title="Last Viewed"
+                />
+            <item android:id="@+id/defaultgps"
+                android:title="Nearest (GPS)"
+                />
+            <item android:id="@+id/defaultguildford"
+                android:title="Guildford"
+                />
+            <item android:id="@+id/defaultlondon"
+                android:title="London"
+                />
+        </menu>
+    </item>
 </menu>
