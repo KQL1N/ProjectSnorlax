@@ -4,7 +4,7 @@ android {
     compileSdkVersion 25
     buildToolsVersion "25.0.3"
     defaultConfig {
-        applicationId 'nl.muar.sa.snorlax'
+        applicationId 'sa.muar.nl.snorlax'
         minSdkVersion 15
         targetSdkVersion 25
         versionCode 1
