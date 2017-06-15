@@ -2,6 +2,14 @@
     <string name="app_name">Project Snorlax</string>
 
     <!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="title_activity_main">MainActivity</string>
+    <string name="title_activity_settings">Settings</string>
+
+    <string-array name="titles">
+        <item>Guildford</item>
+        <item>London</item>
+        <item>Last Viewed</item>
+        <item>Nearest Location (GPS)</item>
+    </string-array>
+
 </resources>
