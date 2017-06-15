@@ -1,4 +1,4 @@
-package sa.muar.nl.projectsnorlax.util;
+package nl.muar.sa.projectsnorlax.util;
 
 /**
  * Created by android-eng on 15/06/17.
