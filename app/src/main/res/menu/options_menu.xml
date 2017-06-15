@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item android:id="@+id/locationchoice" android:title="View Restaurant">
+    <menu>
+        <item android:id="@+id/menuguildford" android:checkableBehavior="single"
+            android:title="Guildford"
+            />
+
+        <item android:id="@+id/menulondon" android:checkableBehavior="single"
+            android:title="London"
+            />
+
+        <item android:id="@+id/menugloucester" android:checkableBehavior="single"
+            android:title="Gloucester"
+            />
+    </menu>
+
+    </item>
+        <item android:id="@+id/menuoptions"
+            android:title="Options" />
+</menu>
