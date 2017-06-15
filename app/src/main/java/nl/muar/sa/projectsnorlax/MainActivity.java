@@ -1,7 +1,11 @@
-package sa.muar.nl.projectsnorlax;
+package nl.muar.sa.projectsnorlax;
 
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+
+import java.util.Date;
+
+import nl.muar.sa.projectsnorlax.R;
 
 public class MainActivity extends AppCompatActivity {
 

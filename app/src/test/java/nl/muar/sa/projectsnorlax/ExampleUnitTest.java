@@ -1,4 +1,4 @@
-package sa.muar.nl.projectsnorlax;
+package nl.muar.sa.projectsnorlax;
 
 import org.junit.Test;
 

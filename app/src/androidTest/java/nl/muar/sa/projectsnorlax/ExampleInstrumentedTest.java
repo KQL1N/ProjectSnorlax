@@ -1,4 +1,4 @@
-package sa.muar.nl.projectsnorlax;
+package nl.muar.sa.projectsnorlax;
 
 import android.content.Context;
 import android.support.test.InstrumentationRegistry;
