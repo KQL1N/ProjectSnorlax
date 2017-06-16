@@ -4,6 +4,7 @@ import android.Manifest;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.database.CursorWrapper;
 import android.database.sqlite.SQLiteDatabase;
 import android.location.Location;
 import android.database.Cursor;
@@ -11,17 +12,24 @@ import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkInfo;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.view.MotionEventCompat;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.os.CountDownTimer;
+import android.support.design.widget.FloatingActionButton;
+import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.Toast;
 
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
@@ -33,29 +41,42 @@ import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
-
 import android.view.MotionEvent;
 import android.widget.TextView;
 import android.widget.Toast;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
+import java.util.ArrayList;
+import java.util.List;
 
 import nl.muar.sa.projectsnorlax.db.EatContract;
 import nl.muar.sa.projectsnorlax.db.EatHelper;
+import nl.muar.sa.projectsnorlax.parser.Restaurant;
 import nl.muar.sa.projectsnorlax.util.UserPreferenceManager;
+import nl.muar.sa.projectsnorlax.R;
 import static nl.muar.sa.projectsnorlax.util.UserPreferenceManager.LAST_LOCATION;
 import static nl.muar.sa.projectsnorlax.util.UserPreferenceManager.PREFERENCE_MODE;
 import static nl.muar.sa.projectsnorlax.util.UserPreferenceManager.PREFERRED_LOCATION;
+import android.view.View;
+import android.widget.TextView;
+
 import java.text.DateFormat;
+import java.text.FieldPosition;
 import java.text.ParseException;
+import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
+
 import nl.muar.sa.projectsnorlax.R;
 
 public class MainActivity extends AppCompatActivity
 {
     public static final String TAG = "Main Activity";
-    //private EatHelper eatHelper;
+    private EatHelper eatHelper;
     CountDownTimer cdt;
 
     public static final String GPS_MODE = "nl.muar.sa.projectsnorlax.gpsmode";              // The user wants to default to the nearest locations
@@ -63,14 +84,17 @@ public class MainActivity extends AppCompatActivity
     public static final String SPECIFIED_MODE = "nl.muar.sa.projectsnorlax.specifiedmode";  // The user wants to default to a specific location from the list
     public static final String LONDON = "London Blue Fin";
     public static final String GUILDFORD = "Guildford Canteen";
-    private String currentLocation;
-    private TextView currentLocationText;
-    private TextView currentDayText;
-    private TextView closingTimeText;
-    private String[] days;
+    public String currentLocation;
+    public TextView currentLocationText;
+    public TextView currentDayText;
+    public TextView closingTimeText;
+    public String[] days;
     private FusedLocationProviderClient mFusedLocationClient;
+    private String latitudeLabel;
+    private String longitudeLabel;
     private Location lastLocation;
     private int MY_PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION;
+
     private static int PAGE_NUM = 5;
     private ViewPager pager;
     private PagerAdapter adapter;
@@ -79,6 +103,8 @@ public class MainActivity extends AppCompatActivity
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
+
+         eatHelper = new EatHelper(getApplicationContext());
         // Basics
         Log.i(TAG, "Creating Activity");
         super.onCreate(savedInstanceState);
@@ -99,42 +125,13 @@ public class MainActivity extends AppCompatActivity
         pager = (ViewPager) findViewById(R.id.pagingview);
         adapter = new Page(getSupportFragmentManager());
         pager.setAdapter(adapter);
-        PageListener listener = new PageListener();
-        pager.setOnPageChangeListener(listener);
-
-        // Boolean for whether network connection is true or false
-        boolean netConnection = isNetworkAvailable();
-
-        // If statement for true or false network connection
-        if (netConnection) {
-            RequestQueue queue = Volley.newRequestQueue(getApplicationContext());
-            // URL of web server
-            String url = "http://sa.muar.nl/weeksmenu";
-
-            StringRequest menuRequest = new StringRequest(Request.Method.GET, url, new Response.Listener<String>() {
-                @Override
-                public void onResponse(String response) {
-                    // Simon's Parsing Stuff
-                }
-            }, new Response.ErrorListener() {
-                // Iterating through the views making them red to show that there was an error
-                @Override
-                public void onErrorResponse(VolleyError error) {
-                    //TODO (johnjerome) add function to check local repository in event of web server request error
-                }
-            });
-            queue.add(menuRequest);
-        } else {
-            Toast.makeText(getApplicationContext(), "No network connection detected", Toast.LENGTH_SHORT).show();
-            Toast.makeText(getApplicationContext(), "Cannot refresh menu while offline", Toast.LENGTH_LONG).show();
-            //TODO (johnjerome) add function for checking the local repository for recent data
-        }
-
     }
 
-    private class PageListener extends ViewPager.SimpleOnPageChangeListener
-    {
         public int currentPage = 0;
+
+        public StringRequest getMenuRequest(){
+            return menuRequest;
+        }
 
         public void onPageSelected(int position)
         {
@@ -143,7 +140,57 @@ public class MainActivity extends AppCompatActivity
             currentDayText.setText(days[currentPage]);
         }
 
-    }
+        final List<View> viewBoxList = new ArrayList<View>();
+
+        final String url = "http://sa.muar.nl/weeksmenu";
+
+        StringRequest menuRequest = new StringRequest(Request.Method.GET, url,
+                new Response.Listener<String>() {
+                    boolean hasbeenUsed = false;
+                    @Override
+                    public void onResponse(String response) {
+
+
+                        if (hasbeenUsed == false) {
+                            Type listOfRestaurantsType = new TypeToken<List<Restaurant>>() {
+                            }.getType();
+                            Log.i("Menu Request", "Data received: " + response);
+                            Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
+                            List<Restaurant> restaurants = gson.fromJson(response, listOfRestaurantsType);
+
+                            for (Restaurant r : restaurants) {
+                                Log.d("Menu Request", "\n" + r.getName());
+                                eatHelper.insertRestaurant(r.getName(), r.getLongitude(), r.getLatitude(), r.getOpeningTime(), r.getClosingTime());
+
+                                //a list with the all the menu items inside it for the current restaurant;
+                                List<nl.muar.sa.projectsnorlax.parser.MenuItem> MIlist = r.getMenuItems();
+
+                                for (nl.muar.sa.projectsnorlax.parser.MenuItem m : MIlist) {
+                                    Log.d("", "Name: " + m.getName() + "\n");
+                                    Log.d("", "ID: " + m.getId() + "\n");
+                                    Log.d("", "Description: " + m.getDescription() + "\n");
+                                    Log.d("", "Price: " + m.getPrice() + "\n");
+                                    Log.d("", "Section: " + m.getSection() + "\n");
+                                    Log.d("", "Date: " + m.getDate() + "");
+                                    Double itemPrice = m.getPrice().doubleValue();
+                                    Cursor c = eatHelper.getRestaurantIdGivenLocation(r.getName());
+                                    c.moveToFirst();
+                                    Long theID = c.getLong(c.getColumnIndex(EatContract.Restaurant._ID));
+
+                                    eatHelper.insertMenuItem(m.getName(), m.getDescription(), itemPrice, m.getSection(), m.getDate(), theID);
+                                }
+                            }
+                            hasbeenUsed = true;
+                        }
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        Log.e("Menu Request", "Unable to get restaurant data from server: " + error.getMessage());
+                    }
+                });
+
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu)
@@ -179,6 +226,10 @@ public class MainActivity extends AppCompatActivity
         } else {
             getLocation();
         }
+
+        RequestQueue queue = Volley.newRequestQueue(this);
+        queue.add(getMenuRequest());
+
     }
 
     @Override
