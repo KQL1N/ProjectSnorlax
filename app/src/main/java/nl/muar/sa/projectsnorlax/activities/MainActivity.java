@@ -4,17 +4,37 @@ import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.location.Location;
+import android.database.Cursor;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.view.MotionEventCompat;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
+import android.os.CountDownTimer;
+import android.support.design.widget.FloatingActionButton;
+import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.Toast;
+
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
 import android.view.MotionEvent;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -22,15 +42,32 @@ import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+import java.util.ArrayList;
+import java.util.List;
 import nl.muar.sa.projectsnorlax.util.UserPreferenceManager;
-import nl.muar.sa.projectsnorlax.R;
 import static nl.muar.sa.projectsnorlax.util.UserPreferenceManager.LAST_LOCATION;
 import static nl.muar.sa.projectsnorlax.util.UserPreferenceManager.PREFERENCE_MODE;
 import static nl.muar.sa.projectsnorlax.util.UserPreferenceManager.PREFERRED_LOCATION;
+import android.view.View;
+import android.widget.TextView;
+
+import java.text.DateFormat;
+import java.text.FieldPosition;
+import java.text.ParseException;
+import java.text.ParsePosition;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.Locale;
+
+import nl.muar.sa.projectsnorlax.R;
 
 public class MainActivity extends AppCompatActivity
 {
     public static final String TAG = "Main Activity";
+    //private EatHelper eatHelper;
+    CountDownTimer cdt;
+
     public static final String GPS_MODE = "nl.muar.sa.projectsnorlax.gpsmode";              // The user wants to default to the nearest locations
     public static final String LAST_MODE = "nl.muar.sa.projectsnorlax.lastmode";            // The user wants to default to the last place they looked at
     public static final String SPECIFIED_MODE = "nl.muar.sa.projectsnorlax.specifiedmode";  // The user wants to default to a specific location from the list
@@ -66,7 +103,6 @@ public class MainActivity extends AppCompatActivity
         loadCorrectLocation();
         currentLocationText.setText(currentLocation);
         days = getDates();
-
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
         // View Pager
@@ -88,6 +124,41 @@ public class MainActivity extends AppCompatActivity
             currentPage= position;
             currentDayText.setText(days[currentPage]);
         }
+
+        View view1 = (View) findViewById(R.id.view1);
+        View view2 = (View) findViewById(R.id.view2);
+        View view3 = (View) findViewById(R.id.view3);
+        View view4 = (View) findViewById(R.id.view4);
+        View view5 = (View) findViewById(R.id.view5);
+        View view6 = (View) findViewById(R.id.view6);
+
+        final List<View> viewBoxList = new ArrayList<View>();
+        viewBoxList.add(0, view1);
+        viewBoxList.add(1, view2);
+        viewBoxList.add(2, view3);
+        viewBoxList.add(3, view4);
+        viewBoxList.add(4, view5);
+        viewBoxList.add(5, view6);
+
+
+        // if network connectivity = true;
+        RequestQueue queue = Volley.newRequestQueue(this);
+        String url = "http://10.6.7.73:8080/weeksmen";
+
+        StringRequest menuRequest = new StringRequest(Request.Method.GET, url, new Response.Listener<String>() {
+                @Override
+                public void onResponse(String response) {
+                    // Simon's Parsing Stuff
+                }
+            }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                for (View view : viewBoxList) {
+                    view.setBackgroundColor(getResources().getColor(R.color.red));
+                }
+            }
+        });
+        queue.add(menuRequest);
     }
 
     @Override
@@ -189,6 +260,86 @@ public class MainActivity extends AppCompatActivity
         }
     }
 
+    @Override
+    protected void onPause(){
+        super.onPause();
+        cdt.cancel();
+    }
+
+    @Override
+    protected void onResume(){
+        super.onResume();
+        startOpenChecker();
+    }
+
+    public String compareTime(String openString, String closeString, Date current) {
+        int openingDif = 0;
+        int closingDif = 0;
+
+        try {
+            openingDif = checkTime(openString, current);
+            Log.i(TAG, "Minutes till open: " + openingDif);
+            closingDif = checkTime(closeString, current);
+            Log.i(TAG, "Minutes till closing " + closingDif);
+
+        } catch (ParseException e) {
+            Log.w(TAG, "Failed to parse given date to calendar object");
+        }
+
+        if (openingDif > 0) {
+            if (openingDif < 30) {
+                return getString(R.string.open_text_start_1, openingDif);
+            } else {
+                return getString(R.string.open_text_start_2, openString);
+            }
+        } else if (closingDif > 0) {
+            if (closingDif < 30) {
+                return getString(R.string.close_text_start_1, closingDif);
+            } else {
+                return getString(R.string.close_text_start_2, closeString);
+            }
+        } else {
+            return "";
+        }
+    }
+
+    public void startOpenChecker(){
+        cdt = new CountDownTimer(120_000, 30_000){
+            public void onTick(long millisUntilFinished){
+
+                //Uncomment the following lines when helper class and method are implemented...
+                //Cursor cursor = eatHelper.getTimesByRestaurantName();
+                //String openString = cursor.getString(cursor.getColumnIndexOrThrow("opening_time"));
+                //String closeString = cursor.getString(cursor.getColumnIndexOrThrow("closing_time"));
+
+                String openString = "9:00"; // <- Temp hard coded string
+                String closeString = "14:30"; // <- Temp hard coded string
+
+                String outputString = compareTime(openString, closeString, new Date());
+                TextView timeText = (TextView) findViewById(R.id.closingtimetext);
+                timeText.setText(outputString);
+            }
+
+            public void onFinish(){
+                startOpenChecker();
+            }
+        }.start();
+    }
+
+    public int checkTime(String openString, Date current) throws ParseException {
+        DateFormat timeFormat = new SimpleDateFormat("HH:mm", Locale.UK);
+        Date eventTime = timeFormat.parse(openString);
+        int eventMinute = getMinuteOfDay(eventTime);
+        int currentMinute = getMinuteOfDay(current);
+        return eventMinute - currentMinute;
+    }
+
+    public int getMinuteOfDay(Date date){
+        Calendar c = Calendar.getInstance();
+        c.setTime(date);
+        return (c.get(Calendar.HOUR_OF_DAY) * 60) + (c.get(Calendar.MINUTE));
+    }
+
     @SuppressWarnings("MissingPermission")
     private void getLocation() {
         mFusedLocationClient.getLastLocation()
@@ -227,7 +378,6 @@ public class MainActivity extends AppCompatActivity
         Toast toast2 = Toast.makeText(context, test, duration);
         toast2.show();
     }
-
 
     public void printStuff()
     {

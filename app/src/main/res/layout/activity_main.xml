@@ -1,18 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
     android:id="@+id/layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:paddingTop="8dp"
     android:paddingLeft="8dp"
-    android:paddingRight="8dp"
-    android:orientation="vertical">
-
+    android:paddingRight="8dp">
     <TextView
         android:id="@+id/currentrestauranttext"
         android:text="Current Restaurant"
         android:textAlignment="center"
-        android:textSize="28dp"
+        android:textSize="28sp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"/>
 
@@ -20,7 +19,7 @@
         android:id="@+id/currentdaytext"
         android:text="Monday 1st"
         android:textAlignment="center"
-        android:textSize="20dp"
+        android:textSize="20sp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"/>
 
@@ -35,9 +34,9 @@
 
     <TextView
         android:id="@+id/closingtimetext"
-        android:text="Closing in..."
+        android:text="@string/open_text_start_1"
         android:textAlignment="center"
-        android:textSize="28dp"
+        android:textSize="16sp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:paddingBottom="8dp"/>
