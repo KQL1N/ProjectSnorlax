@@ -391,6 +391,7 @@ public class MainActivity extends AppCompatActivity
         double distance = 0;
         boolean firstLocationDone = false;
         Location closestLocation = null;
+        locationDbCursor = new EatHelper((getApplicationContext())).getAllRestaurants();
         while(locationDbCursor.moveToNext()) {
             if(firstLocationDone==false){
                 closestLocation = new Location(locationDbCursor.getString(locationDbCursor.getColumnIndex(EatContract.Restaurant.COLUMN_NAME_NAME)));
@@ -413,6 +414,10 @@ public class MainActivity extends AppCompatActivity
 
         }
         locationDbCursor.close();
+        if(closestLocation == null){
+            Log.d(TAG, "The closest location is null");
+            return "Guildford";
+        }
         return closestLocation.getProvider();
     }
 
