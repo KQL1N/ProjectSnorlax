@@ -5,9 +5,6 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.view.MotionEventCompat;
@@ -29,17 +26,17 @@ import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
 import android.view.MotionEvent;
 import android.widget.TextView;
-import android.widget.Toast;
-import com.google.android.gms.location.FusedLocationProviderClient;
-import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.Task;
 
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 
+import nl.muar.sa.projectsnorlax.parser.Restaurant;
 import nl.muar.sa.projectsnorlax.util.UserPreferenceManager;
 import nl.muar.sa.projectsnorlax.R;
 import static nl.muar.sa.projectsnorlax.util.UserPreferenceManager.LAST_LOCATION;
@@ -108,22 +105,28 @@ public class MainActivity extends AppCompatActivity
 
 
         // if network connectivity = true;
-        RequestQueue queue = Volley.newRequestQueue(this);
-        String url = "http://10.6.7.73:8080/weeksmen";
+        final RequestQueue queue = Volley.newRequestQueue(this);
+        final String url = "http://sa.muar.nl/weeksmenu";
 
-        StringRequest menuRequest = new StringRequest(Request.Method.GET, url, new Response.Listener<String>() {
-                @Override
-                public void onResponse(String response) {
-                    // Simon's Parsing Stuff
-                }
-            }, new Response.ErrorListener() {
-            @Override
-            public void onErrorResponse(VolleyError error) {
-                for (View view : viewBoxList) {
-                    view.setBackgroundColor(getResources().getColor(R.color.red));
-                }
-            }
-        });
+        StringRequest menuRequest = new StringRequest(Request.Method.GET, url,
+                new Response.Listener<String>() {
+                    @Override
+                    public void onResponse(String response) {
+                        Type listOfRestaurantsType = new TypeToken<List<Restaurant>>() {}.getType();
+                        Log.i("Menu Request", "Data received: " + response);
+                        List<Restaurant> restaurants = new Gson().fromJson(response, listOfRestaurantsType);
+                        for (Restaurant r: restaurants) {
+                            Log.d("Menu Request", r.getName());
+                        }
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        Log.e("Menu Request", "Unable to get restaurant data from server: " + error.getMessage());
+                    }
+                });
+
         queue.add(menuRequest);
     }
 
