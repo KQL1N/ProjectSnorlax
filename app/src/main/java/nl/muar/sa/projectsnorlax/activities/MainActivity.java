@@ -15,8 +15,6 @@ import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
 import android.support.v4.view.MotionEventCompat;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
@@ -67,8 +65,10 @@ import java.text.FieldPosition;
 import java.text.ParseException;
 import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 
 import nl.muar.sa.projectsnorlax.R;
@@ -100,6 +100,9 @@ public class MainActivity extends AppCompatActivity
     private PagerAdapter adapter;
     private Cursor locationDbCursor;
 
+    private long currentId = 1;
+    private final static String TIME_FORMAT = "HHmm";
+
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
@@ -120,26 +123,7 @@ public class MainActivity extends AppCompatActivity
         currentLocationText.setText(currentLocation);
         days = getDates();
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
-
-        // View Pager
-        pager = (ViewPager) findViewById(R.id.pagingview);
-        adapter = new Page(getSupportFragmentManager());
-        pager.setAdapter(adapter);
-    }
-
-        public int currentPage = 0;
-
-        public StringRequest getMenuRequest(){
-            return menuRequest;
-        }
-
-        public void onPageSelected(int position)
-        {
-            Log.i(TAG, "page selected " + position);
-            currentPage= position;
-            currentDayText.setText(days[currentPage]);
-        }
-
+        
         final List<View> viewBoxList = new ArrayList<View>();
 
         final String url = "http://sa.muar.nl/weeksmenu";
@@ -149,8 +133,6 @@ public class MainActivity extends AppCompatActivity
                     boolean hasbeenUsed = false;
                     @Override
                     public void onResponse(String response) {
-
-
                         if (hasbeenUsed == false) {
                             Type listOfRestaurantsType = new TypeToken<List<Restaurant>>() {
                             }.getType();
@@ -191,6 +173,32 @@ public class MainActivity extends AppCompatActivity
                     }
                 });
 
+        // View Pager
+        pager = (ViewPager) findViewById(R.id.pagingview);
+        adapter = new Page(getSupportFragmentManager());
+        pager.setAdapter(adapter);
+        pager.setOffscreenPageLimit(5);
+        PageListener listener = new PageListener();
+        pager.setOnPageChangeListener(listener);
+        eatHelper = new EatHelper(this);
+    }
+    
+    private class PageListener extends ViewPager.SimpleOnPageChangeListener
+    {
+        public int currentPage = 0;
+
+        public StringRequest getMenuRequest(){
+            return menuRequest;
+        }
+
+        public void onPageSelected(int position)
+        {
+            Log.i(TAG, "page selected " + position);
+            currentPage= position;
+            currentDayText.setText(days[currentPage]);
+            fillListWithMenuItems(position);
+        }
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu)
@@ -338,17 +346,44 @@ public class MainActivity extends AppCompatActivity
         }
     }
 
+    public void fillListWithMenuItems(int position){
+        List<Calendar> weekRange= calculateDateRange(new Date());
+
+        Date dayStart = weekRange.get(0).getTime();
+        weekRange.get(0).add(Calendar.DAY_OF_WEEK, position);
+        Date dayEnd = weekRange.get(0).getTime();
+        Cursor cursor = eatHelper.getMenuItemGivenDateAndLocation(currentId, dayStart, dayEnd);
+        cursor.moveToFirst();
+        MenuItemCursorAdapter menuAdapter = new MenuItemCursorAdapter(this, cursor);
+        Log.i(TAG, cursor.getString(cursor.getColumnIndexOrThrow(EatContract.MenuItem.COLUMN_NAME_NAME)));
+        ListView dayView = (ListView)pager.getChildAt(position).findViewById(R.id.menu_item_list);
+        dayView.setAdapter(menuAdapter);
+    }
+
+    public List<Calendar> calculateDateRange(Date currentDate){
+        List<Calendar> weekRange = new ArrayList<Calendar>();
+        Calendar cStart = Calendar.getInstance();
+        cStart.setFirstDayOfWeek(Calendar.MONDAY);
+        cStart.setTime(currentDate);
+        int today = cStart.get(Calendar.DAY_OF_WEEK);
+        cStart.add(Calendar.DAY_OF_WEEK, - today + Calendar.MONDAY);
+        cStart.set(Calendar.YEAR, Calendar.MONTH, Calendar.DATE, 0, 0, 0);
+        weekRange.add(cStart);
+        Log.i(TAG, "Week begins: " + cStart.getTime());
+        cStart.add(Calendar.DAY_OF_WEEK, - today + Calendar.FRIDAY);
+        Log.i(TAG, "Week ends: " + cStart.getTime());
+        weekRange.add(cStart);
+        return weekRange;
+    }
+
     public void startOpenChecker(){
         cdt = new CountDownTimer(120_000, 30_000){
             public void onTick(long millisUntilFinished){
 
-                //Uncomment the following lines when helper class and method are implemented...
-                //Cursor cursor = eatHelper.getTimesByRestaurantName();
-                //String openString = cursor.getString(cursor.getColumnIndexOrThrow("opening_time"));
-                //String closeString = cursor.getString(cursor.getColumnIndexOrThrow("closing_time"));
-
-                String openString = "9:00"; // <- Temp hard coded string
-                String closeString = "14:30"; // <- Temp hard coded string
+                Cursor cursor = eatHelper.getRestaurantOpeningClosingTimesGivenLocation(currentId);
+                cursor.moveToFirst();
+                String openString = cursor.getString(cursor.getColumnIndexOrThrow(EatContract.Restaurant.COLUMN_NAME_OPENING_TIME));
+                String closeString = cursor.getString(cursor.getColumnIndexOrThrow(EatContract.Restaurant.COLUMN_NAME_CLOSING_TIME));
 
                 String outputString = compareTime(openString, closeString, new Date());
                 TextView timeText = (TextView) findViewById(R.id.closingtimetext);
@@ -362,7 +397,7 @@ public class MainActivity extends AppCompatActivity
     }
 
     public int checkTime(String openString, Date current) throws ParseException {
-        DateFormat timeFormat = new SimpleDateFormat("HH:mm", Locale.UK);
+        DateFormat timeFormat = new SimpleDateFormat(TIME_FORMAT, Locale.UK);
         Date eventTime = timeFormat.parse(openString);
         int eventMinute = getMinuteOfDay(eventTime);
         int currentMinute = getMinuteOfDay(current);

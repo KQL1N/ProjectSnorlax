@@ -12,6 +12,7 @@ import android.widget.CursorAdapter;
 import android.widget.TextView;
 
 import nl.muar.sa.projectsnorlax.R;
+import nl.muar.sa.projectsnorlax.db.EatContract;
 
 public class MenuItemCursorAdapter extends CursorAdapter {
     public MenuItemCursorAdapter(Context context, Cursor cursor){
@@ -32,10 +33,10 @@ public class MenuItemCursorAdapter extends CursorAdapter {
         TextView tvOptionDesc = (TextView) view.findViewById(R.id.option_description_text);
 
         // Extract properties from cursor item
-        String section = cursor.getString(cursor.getColumnIndexOrThrow("section"));
-        String price = cursor.getString(cursor.getColumnIndexOrThrow("price"));
-        String optionName = cursor.getString(cursor.getColumnIndexOrThrow("name"));
-        String optionDesc = cursor.getString(cursor.getColumnIndexOrThrow("description"));
+        String section = cursor.getString(cursor.getColumnIndexOrThrow(EatContract.MenuItem.COLUMN_NAME_SECTION));
+        String price = cursor.getString(cursor.getColumnIndexOrThrow(EatContract.MenuItem.COLUMN_NAME_PRICE));
+        String optionName = cursor.getString(cursor.getColumnIndexOrThrow(EatContract.MenuItem.COLUMN_NAME_NAME));
+        String optionDesc = cursor.getString(cursor.getColumnIndexOrThrow(EatContract.MenuItem.COLUMN_NAME_DESCRIPTION));
 
         // Set text to values gained from cursor item
         tvSection.setText(section);
