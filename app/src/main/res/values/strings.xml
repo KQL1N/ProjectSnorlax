@@ -6,6 +6,15 @@
     <string name="option_name_placeholder">Option Name</string>
     <string name="option_description_placeholder">The description of the option will go here</string>
     <string name="title_activity_main">MainActivity</string>
+    <string name="title_activity_settings">Settings</string>
+
+    <string-array name="titles">
+        <item>Guildford</item>
+        <item>London</item>
+        <item>Last Viewed</item>
+        <item>Nearest Location (GPS)</item>
+    </string-array>
+
     <string name="open_text_start_1">The restaurant opens in </string>
     <string name="open_text_start_2">The restaurant opens at </string>
     <string name="open_text_end"> minutes</string>
