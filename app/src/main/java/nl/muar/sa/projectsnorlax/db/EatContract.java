@@ -27,6 +27,6 @@ public class EatContract {
         public static final String COLUMN_NAME_PRICE = "price";
         public static final String COLUMN_NAME_SECTION= "section";
         public static final String COLUMN_NAME_DATE = "date";
-        public static final String COLUMN_NAME_RESTARAUNT_ID = "restaurant_ID";
+        public static final String COLUMN_NAME_RESTAURANT_ID = "restaurant_ID";
     }
 }
