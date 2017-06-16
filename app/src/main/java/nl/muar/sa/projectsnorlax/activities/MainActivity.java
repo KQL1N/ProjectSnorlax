@@ -4,10 +4,19 @@ import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.location.Location;
+import android.database.Cursor;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.view.MotionEventCompat;
+import android.support.v4.view.PagerAdapter;
+import android.support.v4.view.ViewPager;
+import android.os.CountDownTimer;
+import android.support.design.widget.FloatingActionButton;
+import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
@@ -31,21 +40,38 @@ import com.google.gson.reflect.TypeToken;
 
 import android.view.MotionEvent;
 import android.widget.TextView;
-
-import java.lang.reflect.Type;
+import android.widget.Toast;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
 import java.util.ArrayList;
 import java.util.List;
 
-import nl.muar.sa.projectsnorlax.parser.Restaurant;
 import nl.muar.sa.projectsnorlax.util.UserPreferenceManager;
 import nl.muar.sa.projectsnorlax.R;
 import static nl.muar.sa.projectsnorlax.util.UserPreferenceManager.LAST_LOCATION;
 import static nl.muar.sa.projectsnorlax.util.UserPreferenceManager.PREFERENCE_MODE;
 import static nl.muar.sa.projectsnorlax.util.UserPreferenceManager.PREFERRED_LOCATION;
+import android.view.View;
+import android.widget.TextView;
+
+import java.text.DateFormat;
+import java.text.FieldPosition;
+import java.text.ParseException;
+import java.text.ParsePosition;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.Locale;
+
+import nl.muar.sa.projectsnorlax.R;
 
 public class MainActivity extends AppCompatActivity
 {
     public static final String TAG = "Main Activity";
+    //private EatHelper eatHelper;
+    CountDownTimer cdt;
 
     public static final String GPS_MODE = "nl.muar.sa.projectsnorlax.gpsmode";              // The user wants to default to the nearest locations
     public static final String LAST_MODE = "nl.muar.sa.projectsnorlax.lastmode";            // The user wants to default to the last place they looked at
@@ -63,12 +89,19 @@ public class MainActivity extends AppCompatActivity
     private Location lastLocation;
     private int MY_PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION;
 
+    private static int PAGE_NUM = 5;
+    private ViewPager pager;
+    private PagerAdapter adapter;
+
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
+        // Basics
         Log.i(TAG, "Creating Activity");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        // UI Element
         currentLocationText = (TextView) findViewById(R.id.currentrestauranttext);
         closingTimeText = (TextView) findViewById(R.id.closingtimetext);
         currentDayText = (TextView) findViewById(R.id.currentdaytext);
@@ -76,16 +109,25 @@ public class MainActivity extends AppCompatActivity
         currentLocationText.setText(currentLocation);
         days = getDates();
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+
+        // View Pager
+        pager = (ViewPager) findViewById(R.id.pagingview);
+        adapter = new Page(getSupportFragmentManager());
+        pager.setAdapter(adapter);
+        PageListener listener = new PageListener();
+        pager.setOnPageChangeListener(listener);
+
     }
 
-    @Override
-    public void onStart() {
-        super.onStart();
+    private class PageListener extends ViewPager.SimpleOnPageChangeListener
+    {
+        public int currentPage = 0;
 
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, MY_PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION);
-        } else {
-            getLocation();
+        public void onPageSelected(int position)
+        {
+            Log.i(TAG, "page selected " + position);
+            currentPage= position;
+            currentDayText.setText(days[currentPage]);
         }
 
         View view1 = (View) findViewById(R.id.view1);
@@ -137,6 +179,33 @@ public class MainActivity extends AppCompatActivity
         MenuInflater inf = getMenuInflater();
         inf.inflate(R.menu.options_menu, menu);
         return true;
+    }
+
+    @Override
+    public void onBackPressed()
+    {
+        if (pager.getCurrentItem() == 0)
+        {
+            // If the user is currently looking at the first step, allow the system to handle the
+            // Back button. This calls finish() on this activity and pops the back stack.
+            super.onBackPressed();
+        }
+        else
+            {
+            // Otherwise, select the previous step.
+            pager.setCurrentItem(pager.getCurrentItem() - 1);
+        }
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, MY_PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION);
+        } else {
+            getLocation();
+        }
     }
 
     @Override
@@ -202,6 +271,86 @@ public class MainActivity extends AppCompatActivity
         }
     }
 
+    @Override
+    protected void onPause(){
+        super.onPause();
+        cdt.cancel();
+    }
+
+    @Override
+    protected void onResume(){
+        super.onResume();
+        startOpenChecker();
+    }
+
+    public String compareTime(String openString, String closeString, Date current) {
+        int openingDif = 0;
+        int closingDif = 0;
+
+        try {
+            openingDif = checkTime(openString, current);
+            Log.i(TAG, "Minutes till open: " + openingDif);
+            closingDif = checkTime(closeString, current);
+            Log.i(TAG, "Minutes till closing " + closingDif);
+
+        } catch (ParseException e) {
+            Log.w(TAG, "Failed to parse given date to calendar object");
+        }
+
+        if (openingDif > 0) {
+            if (openingDif < 30) {
+                return getString(R.string.open_text_start_1, openingDif);
+            } else {
+                return getString(R.string.open_text_start_2, openString);
+            }
+        } else if (closingDif > 0) {
+            if (closingDif < 30) {
+                return getString(R.string.close_text_start_1, closingDif);
+            } else {
+                return getString(R.string.close_text_start_2, closeString);
+            }
+        } else {
+            return "";
+        }
+    }
+
+    public void startOpenChecker(){
+        cdt = new CountDownTimer(120_000, 30_000){
+            public void onTick(long millisUntilFinished){
+
+                //Uncomment the following lines when helper class and method are implemented...
+                //Cursor cursor = eatHelper.getTimesByRestaurantName();
+                //String openString = cursor.getString(cursor.getColumnIndexOrThrow("opening_time"));
+                //String closeString = cursor.getString(cursor.getColumnIndexOrThrow("closing_time"));
+
+                String openString = "9:00"; // <- Temp hard coded string
+                String closeString = "14:30"; // <- Temp hard coded string
+
+                String outputString = compareTime(openString, closeString, new Date());
+                TextView timeText = (TextView) findViewById(R.id.closingtimetext);
+                timeText.setText(outputString);
+            }
+
+            public void onFinish(){
+                startOpenChecker();
+            }
+        }.start();
+    }
+
+    public int checkTime(String openString, Date current) throws ParseException {
+        DateFormat timeFormat = new SimpleDateFormat("HH:mm", Locale.UK);
+        Date eventTime = timeFormat.parse(openString);
+        int eventMinute = getMinuteOfDay(eventTime);
+        int currentMinute = getMinuteOfDay(current);
+        return eventMinute - currentMinute;
+    }
+
+    public int getMinuteOfDay(Date date){
+        Calendar c = Calendar.getInstance();
+        c.setTime(date);
+        return (c.get(Calendar.HOUR_OF_DAY) * 60) + (c.get(Calendar.MINUTE));
+    }
+
     @SuppressWarnings("MissingPermission")
     private void getLocation() {
         mFusedLocationClient.getLastLocation()
@@ -216,9 +365,9 @@ public class MainActivity extends AppCompatActivity
                         if (task.isSuccessful() && task.getResult() != null) {
                             lastLocation = task.getResult();
 
-                                    double a = lastLocation.getLatitude();
+                            double a = lastLocation.getLatitude();
 
-                                    lastLocation.getLongitude();
+                            lastLocation.getLongitude();
                             Log.w(TAG, "getLastLocation worked" + a);
                         } else {
                             Log.w(TAG, "getLastLocation:exception "+ task.getException());
@@ -326,28 +475,7 @@ public class MainActivity extends AppCompatActivity
 
     public String[] getDates()
     {
+        // TODO: REPLACE WITH DATABASE DATES
         return new String[]{"Monday 1st", "Tuesday 2nd", "Wednesday 3rd", "Thursday 4th", "Friday 5th"};
-    }
-
-    @Override
-    public boolean onTouchEvent(MotionEvent event)
-    {
-        Log.d(TAG, "Moving...");
-
-        int action = MotionEventCompat.getActionMasked(event);
-
-        switch(action) {
-            case (MotionEvent.ACTION_DOWN):
-                Log.d(TAG, "DOWN");
-                return true;
-            case (MotionEvent.ACTION_MOVE):
-                Log.d(TAG, "MOVE");
-                return true;
-            case (MotionEvent.ACTION_UP):
-                Log.d(TAG, "UP");
-                return true;
-            default :
-                return super.onTouchEvent(event);
-        }
     }
 }
