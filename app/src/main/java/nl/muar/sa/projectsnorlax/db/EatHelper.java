@@ -9,17 +9,15 @@ import android.util.Log;
 
 import java.util.Date;
 
-/**
- * Created by HCEvans on 15/06/17.
- */
+/*Created by HCEvans on 15/06/17.*/
 
 public class EatHelper extends SQLiteOpenHelper{
 
     // If you change the DB schema, you must increment the DB version.
-    private static final int DATABASE_VERSION = 5;
+    private static final int DATABASE_VERSION = 7;
     private static final String DATABASE_NAME = "Eat.db";
     private static final String TAG = "Eat DB Helper";
-    private static String SQL_ENABLE_FOREIGN_KEYS = "PRAGMA foreign_keys = ON";
+    private static String SQL_ENABLE_FOREIGN_KEYS = "PRAGMA foreign_keys=ON";
 
     private static String SQL_CREATE_Restaurant = "CREATE TABLE " + EatContract.Restaurant.TABLE_NAME
             + "(" + EatContract.Restaurant._ID + " INTEGER PRIMARY KEY," +
@@ -43,7 +41,8 @@ public class EatHelper extends SQLiteOpenHelper{
             EatContract.MenuItem.COLUMN_NAME_SECTION + " TEXT," +
             EatContract.MenuItem.COLUMN_NAME_RESTARAUNT_ID + " INTEGER," +
             EatContract.MenuItem.COLUMN_NAME_DATE + " INTEGER," +
-            " FOREIGN KEY ("+EatContract.MenuItem.COLUMN_NAME_RESTARAUNT_ID+") REFERENCES "+EatContract.Restaurant.TABLE_NAME+"("+EatContract.Restaurant._ID+") ON UPDATE CASCADE)";
+            " FOREIGN KEY ("+EatContract.MenuItem.COLUMN_NAME_RESTARAUNT_ID+") REFERENCES "+EatContract.Restaurant.TABLE_NAME+"("+EatContract.Restaurant._ID+")"
+            + "ON DELETE CASCADE )";
 
     private static final String SQL_DELETE_MENU_ITEM =
             "DROP TABLE IF EXISTS " + EatContract.MenuItem.TABLE_NAME;
@@ -58,6 +57,10 @@ public class EatHelper extends SQLiteOpenHelper{
     public void onCreate(SQLiteDatabase db){
         db.execSQL(SQL_CREATE_Restaurant);
         db.execSQL(SQL_CREATE_MENU_ITEM);
+
+    }
+
+    public void onOpen(SQLiteDatabase db){
         db.execSQL(SQL_ENABLE_FOREIGN_KEYS);
     }
 
@@ -134,6 +137,10 @@ public class EatHelper extends SQLiteOpenHelper{
 
         ContentValues values = new ContentValues();
         values.put(EatContract.MenuItem.COLUMN_NAME_NAME, name);
+        values.put(EatContract.MenuItem.COLUMN_NAME_DESCRIPTION, description);
+        values.put(EatContract.MenuItem.COLUMN_NAME_PRICE, price);
+        values.put(EatContract.MenuItem.COLUMN_NAME_SECTION, section);
+        values.put(EatContract.MenuItem.COLUMN_NAME_DATE, date.getTime());
 
         String selection = EatContract.MenuItem._ID + " = ? ";
         String[] selectionArgs = {_id.toString()};
@@ -146,31 +153,32 @@ public class EatHelper extends SQLiteOpenHelper{
 
     }
 
-    public void deleteRestaurant(Long _id, String name){
+    public void deleteRestaurant(Long _id){
         SQLiteDatabase db = this.getWritableDatabase();
+
+      /*  ContentValues values = new ContentValues();
+        values.get(EatContract.MenuItem._ID);*/
 
         String selection = EatContract.Restaurant._ID + " = ?";
         String[] selectionArgs = {_id.toString()};
 
-        int count = db.delete(EatContract.Restaurant.TABLE_NAME, EatContract.Restaurant._ID + " = " + selection, selectionArgs);
+        int count = db.delete(EatContract.Restaurant.TABLE_NAME, selection, selectionArgs);
 
         Log.v(TAG, count + " Restaurants deleted.");
-        Log.v(TAG, name + " deleted.");
     }
 
-    public void deleteMenuItem(Long _id, String name){
+    public void deleteMenuItem(Long _id){
         SQLiteDatabase db = this.getWritableDatabase();
 
-        String selection = EatContract.MenuItem._ID + " LIKE ?";
+        String selection = EatContract.MenuItem._ID + " = ?";
         String[] selectionArgs = {_id.toString()};
 
-        int count = db.delete(EatContract.Restaurant._ID, selection, selectionArgs);
+        int count = db.delete(EatContract.MenuItem.TABLE_NAME, selection, selectionArgs);
 
-        Log.v(TAG, count + " Restaurants deleted.");
-        Log.v(TAG, name + " deleted.");
+        Log.v(TAG, count + " Menu items deleted.");
     }
 
-    // Clear DB
+    // Clear Database
     public void deleteDB(){
         SQLiteDatabase db = this.getWritableDatabase();
         db.execSQL(SQL_DELETE_RESTAURANT_TABLE);
@@ -179,7 +187,7 @@ public class EatHelper extends SQLiteOpenHelper{
         Log.v(TAG, "Database deleted");
     }
 
-    // Clear Tables
+    // Clear Database Tables
     public void clearDB(){
         SQLiteDatabase db = this.getWritableDatabase();
         db.execSQL(SQL_DELETE_ALL_RESTAURANTS);
@@ -229,7 +237,7 @@ public class EatHelper extends SQLiteOpenHelper{
         String selection = EatContract.MenuItem.COLUMN_NAME_RESTARAUNT_ID + " = ?";
         String[] selectionArgs = {restaurantId.toString()};
 
-        String sortOrder = EatContract.MenuItem.COLUMN_NAME_NAME + " ASC";
+        String sortOrder = EatContract.MenuItem.COLUMN_NAME_SECTION + " ASC";
 
         Cursor cursor = db.query(
                 EatContract.MenuItem.TABLE_NAME,
@@ -243,7 +251,7 @@ public class EatHelper extends SQLiteOpenHelper{
         return cursor;
     }
 
-    public Cursor getMenuItemByDateAndLocation(String restaurantName, Date date){
+    public Cursor getAllMenuItems(){
         SQLiteDatabase db = this.getReadableDatabase();
 
         String[] projection = {
@@ -252,12 +260,40 @@ public class EatHelper extends SQLiteOpenHelper{
                 EatContract.MenuItem.COLUMN_NAME_DESCRIPTION,
                 EatContract.MenuItem.COLUMN_NAME_PRICE,
                 EatContract.MenuItem.COLUMN_NAME_SECTION,
+                EatContract.MenuItem.COLUMN_NAME_DATE
+        };
+
+        String sortOrder = EatContract.MenuItem.COLUMN_NAME_NAME + " ASC";
+
+        Cursor cursor = db.query(
+                EatContract.MenuItem.TABLE_NAME,
+                projection,
+                null,
+                null,
+                null,
+                null,
+                sortOrder
+        );
+        return cursor;
+    }
+
+    public Cursor getMenuItemGivenDateAndLocation(Long restaurantId, Date dateStart, Date dateEnd){
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        String[] projection = {
+                EatContract.MenuItem.COLUMN_NAME_NAME,
+                EatContract.MenuItem.COLUMN_NAME_DESCRIPTION,
+                EatContract.MenuItem.COLUMN_NAME_PRICE,
+                EatContract.MenuItem.COLUMN_NAME_SECTION,
                 EatContract.MenuItem.COLUMN_NAME_RESTARAUNT_ID
         };
 
-        String selection = EatContract.Restaurant.COLUMN_NAME_NAME + " = ?" +
-                EatContract.MenuItem.COLUMN_NAME_DATE + " = ?";
-        String[] selectionArgs = {restaurantName , date.toString()};
+        String selection = EatContract.Restaurant._ID + " = ?" + " AND " +
+                EatContract.MenuItem.COLUMN_NAME_DATE + " >= ?" + " OR " +
+                EatContract.MenuItem.COLUMN_NAME_DATE + " <= ?";
+        String[] selectionArgs = {restaurantId.toString(), String.valueOf(dateStart.getTime()), String.valueOf(dateEnd.getTime())};
+
+        String sortOrder = EatContract.MenuItem.COLUMN_NAME_SECTION + " ASC";
 
         Cursor cursor = db.query(
                 EatContract.MenuItem.TABLE_NAME,
@@ -266,14 +302,14 @@ public class EatHelper extends SQLiteOpenHelper{
                 selectionArgs,
                 null,
                 null,
-                null
+                sortOrder
         );
 
         return cursor;
 
     }
 
-    public Cursor getRestaurantOpeningClosingTimesGivenLocation(String name){
+    public Cursor getRestaurantOpeningClosingTimesGivenLocation(Long restaurantId ){
         SQLiteDatabase db = this.getReadableDatabase();
 
         String[] projection = {
@@ -281,11 +317,11 @@ public class EatHelper extends SQLiteOpenHelper{
                 EatContract.Restaurant.COLUMN_NAME_CLOSING_TIME
         };
 
-        String selection = EatContract.Restaurant.COLUMN_NAME_NAME + " = ?";
-        String[] selectionArgs = {name};
+        String selection = EatContract.Restaurant._ID + " = ?";
+        String[] selectionArgs = {restaurantId.toString()};
 
         Cursor cursor = db.query(
-                EatContract.MenuItem.TABLE_NAME,
+                EatContract.Restaurant.TABLE_NAME,
                 projection,
                 selection,
                 selectionArgs,
@@ -297,7 +333,7 @@ public class EatHelper extends SQLiteOpenHelper{
         return cursor;
     }
 
-    public Cursor getRestaurantCoordinatesGivenLocation(String name){
+    public Cursor getRestaurantCoordinatesGivenLocation(Long restaurantId){
         SQLiteDatabase db = this.getReadableDatabase();
 
         String[] projection = {
@@ -305,11 +341,11 @@ public class EatHelper extends SQLiteOpenHelper{
                 EatContract.Restaurant.COLUMN_NAME_LATITUDE
         };
 
-        String selection = EatContract.Restaurant.COLUMN_NAME_NAME + " = ?";
-        String[] selectionArgs = {name};
+        String selection = EatContract.Restaurant._ID + " = ?";
+        String[] selectionArgs = {restaurantId.toString()};
 
         Cursor cursor = db.query(
-                EatContract.MenuItem.TABLE_NAME,
+                EatContract.Restaurant.TABLE_NAME,
                 projection,
                 selection,
                 selectionArgs,
@@ -332,6 +368,8 @@ public class EatHelper extends SQLiteOpenHelper{
         String selection = EatContract.Restaurant.COLUMN_NAME_NAME + " = ?";
         String[] selectionArgs = {name};
 
+
+
         Cursor cursor = db.query(
                 EatContract.Restaurant.TABLE_NAME,
                 projection,
@@ -345,8 +383,27 @@ public class EatHelper extends SQLiteOpenHelper{
         return cursor;
     }
 
-    public void getRestrauntIdGivenLocation(String name){
+    public Cursor getMenuItemIdGivenDescription(String description){
+        SQLiteDatabase db = this.getReadableDatabase();
 
+        String[] projection = {
+                EatContract.MenuItem._ID
+        };
+
+        String selection = EatContract.MenuItem.COLUMN_NAME_DESCRIPTION + " = ?";
+        String[] selectionArgs = {description};
+
+        Cursor cursor = db.query(
+                EatContract.MenuItem.TABLE_NAME,
+                projection,
+                selection,
+                selectionArgs,
+                null,
+                null,
+                null
+        );
+
+        return cursor;
     }
 
 
