@@ -15,4 +15,8 @@
         <item>Nearest Location (GPS)</item>
     </string-array>
 
+    <string name="open_text_start_1">The restaurant opens in %1$d minutes.</string>
+    <string name="open_text_start_2">The restaurant opens at %1$s</string>
+    <string name="close_text_start_1">The restaurant closes in %1$d minutes.</string>
+    <string name="close_text_start_2">Currently open, closes at %1$s</string>
 </resources>
