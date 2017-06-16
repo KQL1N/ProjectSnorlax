@@ -1,10 +1,16 @@
 package nl.muar.sa.projectsnorlax.activities;
 
 import android.Manifest;
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.database.CursorWrapper;
+import android.database.sqlite.SQLiteDatabase;
 import android.location.Location;
 import android.database.Cursor;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
@@ -46,9 +52,9 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import java.util.ArrayList;
 import java.util.List;
-
-import nl.muar.sa.projectsnorlax.db.EatHelper;
 import nl.muar.sa.projectsnorlax.providers.MenuItemCursorAdapter;
+import nl.muar.sa.projectsnorlax.db.EatContract;
+import nl.muar.sa.projectsnorlax.db.EatHelper;
 import nl.muar.sa.projectsnorlax.util.UserPreferenceManager;
 import static nl.muar.sa.projectsnorlax.util.UserPreferenceManager.LAST_LOCATION;
 import static nl.muar.sa.projectsnorlax.util.UserPreferenceManager.PREFERENCE_MODE;
@@ -92,6 +98,7 @@ public class MainActivity extends AppCompatActivity
     private static int PAGE_NUM = 5;
     private ViewPager pager;
     private PagerAdapter adapter;
+    private Cursor locationDbCursor;
 
     private long currentId = 1;
     private final static String TIME_FORMAT = "HHmm";
@@ -121,6 +128,34 @@ public class MainActivity extends AppCompatActivity
         PageListener listener = new PageListener();
         pager.setOnPageChangeListener(listener);
 
+        // Boolean for whether network connection is true or false
+        boolean netConnection = isNetworkAvailable();
+
+        // If statement for true or false network connection
+        if (netConnection) {
+            RequestQueue queue = Volley.newRequestQueue(getApplicationContext());
+            // URL of web server
+            String url = "http://sa.muar.nl/weeksmenu";
+
+            StringRequest menuRequest = new StringRequest(Request.Method.GET, url, new Response.Listener<String>() {
+                @Override
+                public void onResponse(String response) {
+                    // Simon's Parsing Stuff
+                }
+            }, new Response.ErrorListener() {
+                // Iterating through the views making them red to show that there was an error
+                @Override
+                public void onErrorResponse(VolleyError error) {
+                    //TODO (johnjerome) add function to check local repository in event of web server request error
+                }
+            });
+            queue.add(menuRequest);
+        } else {
+            Toast.makeText(getApplicationContext(), "No network connection detected", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getApplicationContext(), "Cannot refresh menu while offline", Toast.LENGTH_LONG).show();
+            //TODO (johnjerome) add function for checking the local repository for recent data
+        }
+
     }
 
     private class PageListener extends ViewPager.SimpleOnPageChangeListener
@@ -133,6 +168,7 @@ public class MainActivity extends AppCompatActivity
             currentPage= position;
             currentDayText.setText(days[currentPage]);
         }
+
     }
 
     @Override
@@ -352,31 +388,65 @@ public class MainActivity extends AppCompatActivity
                         Log.w(TAG, log);
                         if (task.isSuccessful() && task.getResult() != null) {
                             lastLocation = task.getResult();
+                            compareDistance(lastLocation);
 
-                            double a = lastLocation.getLatitude();
-
-                            lastLocation.getLongitude();
-                            Log.w(TAG, "getLastLocation worked" + a);
                         } else {
                             Log.w(TAG, "getLastLocation:exception "+ task.getException());
                         }
                     }
                 });
     }
+    private void initialiseLocationDb(){
+        EatHelper dbHelper = new EatHelper(getApplicationContext());
+        SQLiteDatabase db = dbHelper.getReadableDatabase();
+        String[] projection = {
+                EatContract.Restaurant._ID,
+                EatContract.Restaurant.COLUMN_NAME_NAME,
+                EatContract.Restaurant.COLUMN_NAME_LATITUDE,
+                EatContract.Restaurant.COLUMN_NAME_LONGITUDE,
+        };
+        String selection = EatContract.Restaurant.COLUMN_NAME_NAME + "= ?";
+        String[] selectionArgs = {"Guildford"}; //TODO:make it return everything not just Guildford
 
-    private void compareDistance(Location location) {
-        double num = location.getLatitude();
-        String test = location.toString();
-        int duration = Toast.LENGTH_SHORT;
-        Log.d(TAG, "Got distances "+ num + test);
-        Context context = getApplicationContext();
-        CharSequence helpText =""+num+"";
-        Toast toast = Toast.makeText(context, helpText, duration);
-        toast.show();
-
-        Toast toast2 = Toast.makeText(context, test, duration);
-        toast2.show();
+        Cursor cursor = db.query(EatContract.Restaurant.TABLE_NAME,
+                projection,
+                selection,
+                selectionArgs,
+                null,
+                null,
+                null);
     }
+    private String compareDistance(Location location) {
+        initialiseLocationDb();
+
+        double distance = 0;
+        boolean firstLocationDone = false;
+        Location closestLocation = null;
+        while(locationDbCursor.moveToNext()) {
+            if(firstLocationDone==false){
+                closestLocation = new Location(locationDbCursor.getString(locationDbCursor.getColumnIndex(EatContract.Restaurant.COLUMN_NAME_NAME)));
+                closestLocation.setLatitude(locationDbCursor.getFloat(locationDbCursor.getColumnIndex(EatContract.Restaurant.COLUMN_NAME_LATITUDE)));
+                closestLocation.setLatitude(locationDbCursor.getFloat(locationDbCursor.getColumnIndex(EatContract.Restaurant.COLUMN_NAME_LONGITUDE)));
+
+                firstLocationDone=true;
+            }
+
+            Location tempOfficeLocation = new Location(locationDbCursor.getString(locationDbCursor.getColumnIndex(EatContract.Restaurant.COLUMN_NAME_NAME)));
+            tempOfficeLocation.setLatitude(locationDbCursor.getFloat(locationDbCursor.getColumnIndex(EatContract.Restaurant.COLUMN_NAME_LATITUDE)));
+            tempOfficeLocation.setLatitude(locationDbCursor.getFloat(locationDbCursor.getColumnIndex(EatContract.Restaurant.COLUMN_NAME_LONGITUDE)));
+
+            float distance2 = location.distanceTo(tempOfficeLocation);
+
+            if(distance2<distance){
+                distance = distance2;
+                closestLocation = tempOfficeLocation;
+            }
+
+        }
+        locationDbCursor.close();
+        return closestLocation.getProvider();
+    }
+
 
     public void printStuff()
     {
@@ -466,4 +536,37 @@ public class MainActivity extends AppCompatActivity
         // TODO: REPLACE WITH DATABASE DATES
         return new String[]{"Monday 1st", "Tuesday 2nd", "Wednesday 3rd", "Thursday 4th", "Friday 5th"};
     }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event)
+    {
+        Log.d(TAG, "Moving...");
+
+        int action = MotionEventCompat.getActionMasked(event);
+
+        switch(action) {
+            case (MotionEvent.ACTION_DOWN):
+                Log.d(TAG, "DOWN");
+                return true;
+            case (MotionEvent.ACTION_MOVE):
+                Log.d(TAG, "MOVE");
+                return true;
+            case (MotionEvent.ACTION_UP):
+                Log.d(TAG, "UP");
+                return true;
+            default :
+                return super.onTouchEvent(event);
+        }
+    }
+
+    // Method to check for a network connection
+    private boolean isNetworkAvailable() {
+        ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+
+        Log.i(TAG, "Checking for a network connection");
+
+        return activeNetworkInfo != null;
+    }
+
 }
