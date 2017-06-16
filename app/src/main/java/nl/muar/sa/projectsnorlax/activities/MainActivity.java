@@ -3,6 +3,8 @@ package nl.muar.sa.projectsnorlax.activities;
 import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.database.CursorWrapper;
+import android.database.sqlite.SQLiteDatabase;
 import android.location.Location;
 import android.database.Cursor;
 import android.os.Bundle;
@@ -44,6 +46,9 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import java.util.ArrayList;
 import java.util.List;
+
+import nl.muar.sa.projectsnorlax.db.EatContract;
+import nl.muar.sa.projectsnorlax.db.EatHelper;
 import nl.muar.sa.projectsnorlax.util.UserPreferenceManager;
 import static nl.muar.sa.projectsnorlax.util.UserPreferenceManager.LAST_LOCATION;
 import static nl.muar.sa.projectsnorlax.util.UserPreferenceManager.PREFERENCE_MODE;
@@ -87,6 +92,7 @@ public class MainActivity extends AppCompatActivity
     private static int PAGE_NUM = 5;
     private ViewPager pager;
     private PagerAdapter adapter;
+    private Cursor locationDbCursor;
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -124,41 +130,6 @@ public class MainActivity extends AppCompatActivity
             currentPage= position;
             currentDayText.setText(days[currentPage]);
         }
-
-        View view1 = (View) findViewById(R.id.view1);
-        View view2 = (View) findViewById(R.id.view2);
-        View view3 = (View) findViewById(R.id.view3);
-        View view4 = (View) findViewById(R.id.view4);
-        View view5 = (View) findViewById(R.id.view5);
-        View view6 = (View) findViewById(R.id.view6);
-
-        final List<View> viewBoxList = new ArrayList<View>();
-        viewBoxList.add(0, view1);
-        viewBoxList.add(1, view2);
-        viewBoxList.add(2, view3);
-        viewBoxList.add(3, view4);
-        viewBoxList.add(4, view5);
-        viewBoxList.add(5, view6);
-
-
-        // if network connectivity = true;
-        RequestQueue queue = Volley.newRequestQueue(this);
-        String url = "http://10.6.7.73:8080/weeksmen";
-
-        StringRequest menuRequest = new StringRequest(Request.Method.GET, url, new Response.Listener<String>() {
-                @Override
-                public void onResponse(String response) {
-                    // Simon's Parsing Stuff
-                }
-            }, new Response.ErrorListener() {
-            @Override
-            public void onErrorResponse(VolleyError error) {
-                for (View view : viewBoxList) {
-                    view.setBackgroundColor(getResources().getColor(R.color.red));
-                }
-            }
-        });
-        queue.add(menuRequest);
     }
 
     @Override
@@ -353,31 +324,65 @@ public class MainActivity extends AppCompatActivity
                         Log.w(TAG, log);
                         if (task.isSuccessful() && task.getResult() != null) {
                             lastLocation = task.getResult();
+                            compareDistance(lastLocation);
 
-                            double a = lastLocation.getLatitude();
-
-                            lastLocation.getLongitude();
-                            Log.w(TAG, "getLastLocation worked" + a);
                         } else {
                             Log.w(TAG, "getLastLocation:exception "+ task.getException());
                         }
                     }
                 });
     }
+    private void initialiseLocationDb(){
+        EatHelper dbHelper = new EatHelper(getApplicationContext());
+        SQLiteDatabase db = dbHelper.getReadableDatabase();
+        String[] projection = {
+                EatContract.Restaurant._ID,
+                EatContract.Restaurant.COLUMN_NAME_NAME,
+                EatContract.Restaurant.COLUMN_NAME_LATITUDE,
+                EatContract.Restaurant.COLUMN_NAME_LONGITUDE,
+        };
+        String selection = EatContract.Restaurant.COLUMN_NAME_NAME + "= ?";
+        String[] selectionArgs = {"Guildford"}; //TODO:make it return everything not just Guildford
 
-    private void compareDistance(Location location) {
-        double num = location.getLatitude();
-        String test = location.toString();
-        int duration = Toast.LENGTH_SHORT;
-        Log.d(TAG, "Got distances "+ num + test);
-        Context context = getApplicationContext();
-        CharSequence helpText =""+num+"";
-        Toast toast = Toast.makeText(context, helpText, duration);
-        toast.show();
-
-        Toast toast2 = Toast.makeText(context, test, duration);
-        toast2.show();
+        Cursor cursor = db.query(EatContract.Restaurant.TABLE_NAME,
+                projection,
+                selection,
+                selectionArgs,
+                null,
+                null,
+                null);
     }
+    private String compareDistance(Location location) {
+        initialiseLocationDb();
+
+        double distance = 0;
+        boolean firstLocationDone = false;
+        Location closestLocation = null;
+        while(locationDbCursor.moveToNext()) {
+            if(firstLocationDone==false){
+                closestLocation = new Location(locationDbCursor.getString(locationDbCursor.getColumnIndex(EatContract.Restaurant.COLUMN_NAME_NAME)));
+                closestLocation.setLatitude(locationDbCursor.getFloat(locationDbCursor.getColumnIndex(EatContract.Restaurant.COLUMN_NAME_LATITUDE)));
+                closestLocation.setLatitude(locationDbCursor.getFloat(locationDbCursor.getColumnIndex(EatContract.Restaurant.COLUMN_NAME_LONGITUDE)));
+
+                firstLocationDone=true;
+            }
+
+            Location tempOfficeLocation = new Location(locationDbCursor.getString(locationDbCursor.getColumnIndex(EatContract.Restaurant.COLUMN_NAME_NAME)));
+            tempOfficeLocation.setLatitude(locationDbCursor.getFloat(locationDbCursor.getColumnIndex(EatContract.Restaurant.COLUMN_NAME_LATITUDE)));
+            tempOfficeLocation.setLatitude(locationDbCursor.getFloat(locationDbCursor.getColumnIndex(EatContract.Restaurant.COLUMN_NAME_LONGITUDE)));
+
+            float distance2 = location.distanceTo(tempOfficeLocation);
+
+            if(distance2<distance){
+                distance = distance2;
+                closestLocation = tempOfficeLocation;
+            }
+
+        }
+        locationDbCursor.close();
+        return closestLocation.getProvider();
+    }
+
 
     public void printStuff()
     {
