@@ -112,10 +112,6 @@ public class MainActivity extends AppCompatActivity
     {
         switch (item.getItemId())
         {
-            case R.id.menugloucester:
-                Log.i(TAG, "Gloucester Menu Item Clicked");
-                mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
-                getLocation();
             case R.id.menuguildford:
                 Log.i(TAG, "Guildford Menu Item Clicked");
                 currentLocation = GUILDFORD;
@@ -186,41 +182,52 @@ public class MainActivity extends AppCompatActivity
         startOpenChecker();
     }
 
-    public void compareTime(){
+    public String compareTime(String openString, String closeString, Date current) {
         int openingDif = 0;
         int closingDif = 0;
 
-        //Uncomment the following lines when helper class and method are implemented...
-        //Cursor cursor = eatHelper.getTimesByRestaurantName();
-        //String openString = cursor.getString(cursor.getColumnIndexOrThrow("opening_time"));
-        //String closeString = cursor.getString(cursor.getColumnIndexOrThrow("closing_time"));
+        try {
+            openingDif = checkTime(openString, current);
+            Log.i(TAG, "Minutes till open: " + openingDif);
+            closingDif = checkTime(closeString, current);
+            Log.i(TAG, "Minutes till closing " + closingDif);
 
-        String openString = "12:00";
-        String closeString = "14:30";
-
-        try{
-            openingDif = checkTime(openString);
-            closingDif = checkTime(closeString);
-
-        } catch(ParseException e){
+        } catch (ParseException e) {
             Log.w(TAG, "Failed to parse given date to calendar object");
         }
-        TextView timeText = (TextView) findViewById(R.id.adjust_height); //Replace with actual id of text box
-        if(openingDif > 0 && openingDif < 240){
-            if(openingDif < 30){
-                timeText.setText(R.string.open_text_start_1 + openingDif + R.string.open_text_end);
+
+        if (openingDif > 0) {
+            if (openingDif < 30) {
+                return getString(R.string.open_text_start_1, openingDif);
             } else {
-                timeText.setText(R.string.open_text_start_2 + openString);
+                return getString(R.string.open_text_start_2, openString);
             }
-        } else if(closingDif > 0 && closingDif < 30){
-            timeText.setText(R.string.close_text_start + closingDif + R.string.open_text_end);
+        } else if (closingDif > 0) {
+            if (closingDif < 30) {
+                return getString(R.string.close_text_start_1, closingDif);
+            } else {
+                return getString(R.string.close_text_start_2, closeString);
+            }
+        } else {
+            return "";
         }
     }
 
     public void startOpenChecker(){
         cdt = new CountDownTimer(120_000, 30_000){
             public void onTick(long millisUntilFinished){
-                compareTime();
+
+                //Uncomment the following lines when helper class and method are implemented...
+                //Cursor cursor = eatHelper.getTimesByRestaurantName();
+                //String openString = cursor.getString(cursor.getColumnIndexOrThrow("opening_time"));
+                //String closeString = cursor.getString(cursor.getColumnIndexOrThrow("closing_time"));
+
+                String openString = "9:00"; // <- Temp hard coded string
+                String closeString = "14:30"; // <- Temp hard coded string
+
+                String outputString = compareTime(openString, closeString, new Date());
+                TextView timeText = (TextView) findViewById(R.id.closingtimetext);
+                timeText.setText(outputString);
             }
 
             public void onFinish(){
@@ -229,11 +236,11 @@ public class MainActivity extends AppCompatActivity
         }.start();
     }
 
-    public int checkTime(String openString) throws ParseException {
+    public int checkTime(String openString, Date current) throws ParseException {
         DateFormat timeFormat = new SimpleDateFormat("HH:mm", Locale.UK);
         Date eventTime = timeFormat.parse(openString);
         int eventMinute = getMinuteOfDay(eventTime);
-        int currentMinute = getMinuteOfDay(new Date());
+        int currentMinute = getMinuteOfDay(current);
         return eventMinute - currentMinute;
     }
 
