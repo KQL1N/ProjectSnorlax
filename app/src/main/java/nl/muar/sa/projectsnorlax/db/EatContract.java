@@ -12,7 +12,7 @@ public class EatContract {
     private EatContract(){}
 
     public static class Restaurant implements BaseColumns{
-        public static final String TABLE_NAME = "restaurants";
+        public static final String TABLE_NAME = "restaurant";
         public static final String COLUMN_NAME_NAME = "name";
         public static final String COLUMN_NAME_LONGITUDE = "longitude";
         public static final String COLUMN_NAME_LATITUDE = "latitude";
