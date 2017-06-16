@@ -3,6 +3,8 @@ package nl.muar.sa.projectsnorlax.activities;
 import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.database.CursorWrapper;
+import android.database.sqlite.SQLiteDatabase;
 import android.location.Location;
 import android.database.Cursor;
 import android.os.Bundle;
@@ -44,6 +46,9 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import java.util.ArrayList;
 import java.util.List;
+
+import nl.muar.sa.projectsnorlax.db.EatContract;
+import nl.muar.sa.projectsnorlax.db.EatHelper;
 import nl.muar.sa.projectsnorlax.util.UserPreferenceManager;
 import static nl.muar.sa.projectsnorlax.util.UserPreferenceManager.LAST_LOCATION;
 import static nl.muar.sa.projectsnorlax.util.UserPreferenceManager.PREFERENCE_MODE;
@@ -87,6 +92,7 @@ public class MainActivity extends AppCompatActivity
     private static int PAGE_NUM = 5;
     private ViewPager pager;
     private PagerAdapter adapter;
+    private Cursor locationDbCursor;
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -318,31 +324,65 @@ public class MainActivity extends AppCompatActivity
                         Log.w(TAG, log);
                         if (task.isSuccessful() && task.getResult() != null) {
                             lastLocation = task.getResult();
+                            compareDistance(lastLocation);
 
-                            double a = lastLocation.getLatitude();
-
-                            lastLocation.getLongitude();
-                            Log.w(TAG, "getLastLocation worked" + a);
                         } else {
                             Log.w(TAG, "getLastLocation:exception "+ task.getException());
                         }
                     }
                 });
     }
+    private void initialiseLocationDb(){
+        EatHelper dbHelper = new EatHelper(getApplicationContext());
+        SQLiteDatabase db = dbHelper.getReadableDatabase();
+        String[] projection = {
+                EatContract.Restaurant._ID,
+                EatContract.Restaurant.COLUMN_NAME_NAME,
+                EatContract.Restaurant.COLUMN_NAME_LATITUDE,
+                EatContract.Restaurant.COLUMN_NAME_LONGITUDE,
+        };
+        String selection = EatContract.Restaurant.COLUMN_NAME_NAME + "= ?";
+        String[] selectionArgs = {"Guildford"}; //TODO:make it return everything not just Guildford
 
-    private void compareDistance(Location location) {
-        double num = location.getLatitude();
-        String test = location.toString();
-        int duration = Toast.LENGTH_SHORT;
-        Log.d(TAG, "Got distances "+ num + test);
-        Context context = getApplicationContext();
-        CharSequence helpText =""+num+"";
-        Toast toast = Toast.makeText(context, helpText, duration);
-        toast.show();
-
-        Toast toast2 = Toast.makeText(context, test, duration);
-        toast2.show();
+        Cursor cursor = db.query(EatContract.Restaurant.TABLE_NAME,
+                projection,
+                selection,
+                selectionArgs,
+                null,
+                null,
+                null);
     }
+    private String compareDistance(Location location) {
+        initialiseLocationDb();
+
+        double distance = 0;
+        boolean firstLocationDone = false;
+        Location closestLocation = null;
+        while(locationDbCursor.moveToNext()) {
+            if(firstLocationDone==false){
+                closestLocation = new Location(locationDbCursor.getString(locationDbCursor.getColumnIndex(EatContract.Restaurant.COLUMN_NAME_NAME)));
+                closestLocation.setLatitude(locationDbCursor.getFloat(locationDbCursor.getColumnIndex(EatContract.Restaurant.COLUMN_NAME_LATITUDE)));
+                closestLocation.setLatitude(locationDbCursor.getFloat(locationDbCursor.getColumnIndex(EatContract.Restaurant.COLUMN_NAME_LONGITUDE)));
+
+                firstLocationDone=true;
+            }
+
+            Location tempOfficeLocation = new Location(locationDbCursor.getString(locationDbCursor.getColumnIndex(EatContract.Restaurant.COLUMN_NAME_NAME)));
+            tempOfficeLocation.setLatitude(locationDbCursor.getFloat(locationDbCursor.getColumnIndex(EatContract.Restaurant.COLUMN_NAME_LATITUDE)));
+            tempOfficeLocation.setLatitude(locationDbCursor.getFloat(locationDbCursor.getColumnIndex(EatContract.Restaurant.COLUMN_NAME_LONGITUDE)));
+
+            float distance2 = location.distanceTo(tempOfficeLocation);
+
+            if(distance2<distance){
+                distance = distance2;
+                closestLocation = tempOfficeLocation;
+            }
+
+        }
+        locationDbCursor.close();
+        return closestLocation.getProvider();
+    }
+
 
     public void printStuff()
     {
