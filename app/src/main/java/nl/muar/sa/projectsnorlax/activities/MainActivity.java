@@ -3,6 +3,7 @@ package nl.muar.sa.projectsnorlax.activities;
 import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
 import android.location.Location;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -21,15 +22,18 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 
 
+import java.util.ArrayList;
+import java.util.List;
 
+import nl.muar.sa.projectsnorlax.db.eatContract;
 import sa.muar.nl.projectsnorlax.R;
 
 public class MainActivity extends AppCompatActivity
 {
     public static final String TAG = "Main Activity";
     private FusedLocationProviderClient mFusedLocationClient;
-    private String latitudeLabel;
-    private String longitudeLabel;
+    private double latitude;
+    private double longitude;
     private Location lastLocation;
     private int MY_PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION;
 
@@ -93,10 +97,10 @@ public class MainActivity extends AppCompatActivity
                         if (task.isSuccessful() && task.getResult() != null) {
                             lastLocation = task.getResult();
 
-                                    double a = lastLocation.getLatitude();
+                                    latitude = lastLocation.getLatitude();
 
-                                    lastLocation.getLongitude();
-                            Log.w(TAG, "getLastLocation worked" + a);
+                                    longitude = lastLocation.getLongitude();
+
                         } else {
                             Log.w(TAG, "getLastLocation:exception "+ task.getException());
                         }
@@ -104,18 +108,31 @@ public class MainActivity extends AppCompatActivity
                 });
     }
 
-    private void compareDistance(Location location) {
-        double num = location.getLatitude();
-        String test = location.toString();
-        int duration = Toast.LENGTH_SHORT;
-        Log.d(TAG, "Got distances "+ num + test);
-        Context context = getApplicationContext();
-        CharSequence helpText =""+num+"";
-        Toast toast = Toast.makeText(context, helpText, duration);
-        toast.show();
+    //iterate through the database - Hannah might do that for me
+    //make a method that extracts the latitude and longituden from the cursor
+    //actually work out and compare the distances
 
-        Toast toast2 = Toast.makeText(context, test, duration);
-        toast2.show();
+
+    private String compareDistance(Location location) {
+
+        Cursor cursor; //need to initialise this (Hannah might do it for me)
+        Location closestLocation = new Location(cursor.getFirstLocation);
+        double distance = location.distanceTo(cursor.getFirstLocation);
+        while(cursor.moveToNext()) {
+            Location tempOfficeLocation = new Location(""+cursor.getName);
+            tempOfficeLocation.setLatitude(cursor.getLatitude);
+            tempOfficeLocation.setLongitude(cursor.getLongitude);
+
+
+            float distance2 = location.distanceTo(officeLocation);
+            if(distance2<distance){
+                distance = distance2;
+                closestLocation = tempOfficeLocation;
+            }
+
+        }
+        cursor.close();
+        return closestLocation.getName();
     }
 
 }
