@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item android:id="@+id/locationchoice" android:title="View Restaurant">
+      <menu android:checkableBehavior="single">
+          <item android:id="@+id/menuguildford"
+             android:title="Guildford"
+             />
+
+          <item android:id="@+id/menulondon"
+             android:title="London"
+                />
+        </menu>
+    </item>
+
+    <item android:id="@+id/defaultchoice" android:title="Set Default">
+        <menu android:checkableBehavior="single">
+            <item android:id="@+id/defaultlastused"
+                android:title="Last Viewed"
+                />
+            <item android:id="@+id/defaultgps"
+                android:title="Nearest (GPS)"
+                />
+            <item android:id="@+id/defaultguildford"
+                android:title="Guildford"
+                />
+            <item android:id="@+id/defaultlondon"
+                android:title="London"
+                />
+        </menu>
+    </item>
+</menu>
