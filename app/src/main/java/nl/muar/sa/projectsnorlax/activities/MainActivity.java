@@ -1,10 +1,15 @@
 package nl.muar.sa.projectsnorlax.activities;
 
 import android.Manifest;
+import android.app.AlertDialog;
+import android.content.Context;
 import android.content.pm.PackageManager;
 import android.database.sqlite.SQLiteDatabase;
 import android.location.Location;
 import android.database.Cursor;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
@@ -85,6 +90,34 @@ public class MainActivity extends AppCompatActivity
         PageListener listener = new PageListener();
         pager.setOnPageChangeListener(listener);
 
+        // Boolean for whether network connection is true or false
+        boolean netConnection = isNetworkAvailable();
+
+        // If statement for true or false network connection
+        if (netConnection) {
+            RequestQueue queue = Volley.newRequestQueue(getApplicationContext());
+            // URL of web server
+            String url = "http://sa.muar.nl/weeksmenu";
+
+            StringRequest menuRequest = new StringRequest(Request.Method.GET, url, new Response.Listener<String>() {
+                @Override
+                public void onResponse(String response) {
+                    // Simon's Parsing Stuff
+                }
+            }, new Response.ErrorListener() {
+                // Iterating through the views making them red to show that there was an error
+                @Override
+                public void onErrorResponse(VolleyError error) {
+                    //TODO (johnjerome) add function to check local repository in event of web server request error
+                }
+            });
+            queue.add(menuRequest);
+        } else {
+            Toast.makeText(getApplicationContext(), "No network connection detected", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getApplicationContext(), "Cannot refresh menu while offline", Toast.LENGTH_LONG).show();
+            //TODO (johnjerome) add function for checking the local repository for recent data
+        }
+
     }
 
     private class PageListener extends ViewPager.SimpleOnPageChangeListener
@@ -97,6 +130,7 @@ public class MainActivity extends AppCompatActivity
             currentPage= position;
             currentDayText.setText(days[currentPage]);
         }
+
     }
 
     @Override
@@ -439,4 +473,37 @@ public class MainActivity extends AppCompatActivity
         // TODO: REPLACE WITH DATABASE DATES
         return new String[]{"Monday 1st", "Tuesday 2nd", "Wednesday 3rd", "Thursday 4th", "Friday 5th"};
     }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event)
+    {
+        Log.d(TAG, "Moving...");
+
+        int action = MotionEventCompat.getActionMasked(event);
+
+        switch(action) {
+            case (MotionEvent.ACTION_DOWN):
+                Log.d(TAG, "DOWN");
+                return true;
+            case (MotionEvent.ACTION_MOVE):
+                Log.d(TAG, "MOVE");
+                return true;
+            case (MotionEvent.ACTION_UP):
+                Log.d(TAG, "UP");
+                return true;
+            default :
+                return super.onTouchEvent(event);
+        }
+    }
+
+    // Method to check for a network connection
+    private boolean isNetworkAvailable() {
+        ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+
+        Log.i(TAG, "Checking for a network connection");
+
+        return activeNetworkInfo != null;
+    }
+
 }
