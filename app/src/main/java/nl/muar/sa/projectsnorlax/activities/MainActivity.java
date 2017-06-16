@@ -4,6 +4,7 @@ import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.location.Location;
+import android.database.Cursor;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
@@ -11,6 +12,9 @@ import android.support.v4.content.ContextCompat;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.view.MotionEventCompat;
+import android.os.CountDownTimer;
+import android.support.design.widget.FloatingActionButton;
+import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
@@ -41,14 +45,28 @@ import java.util.ArrayList;
 import java.util.List;
 
 import nl.muar.sa.projectsnorlax.util.UserPreferenceManager;
-import nl.muar.sa.projectsnorlax.R;
 import static nl.muar.sa.projectsnorlax.util.UserPreferenceManager.LAST_LOCATION;
 import static nl.muar.sa.projectsnorlax.util.UserPreferenceManager.PREFERENCE_MODE;
 import static nl.muar.sa.projectsnorlax.util.UserPreferenceManager.PREFERRED_LOCATION;
+import android.view.View;
+import android.widget.TextView;
+
+import java.text.DateFormat;
+import java.text.FieldPosition;
+import java.text.ParseException;
+import java.text.ParsePosition;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.Locale;
+
+import nl.muar.sa.projectsnorlax.R;
 
 public class MainActivity extends AppCompatActivity
 {
     public static final String TAG = "Main Activity";
+    //private EatHelper eatHelper;
+    CountDownTimer cdt;
 
     public static final String GPS_MODE = "nl.muar.sa.projectsnorlax.gpsmode";              // The user wants to default to the nearest locations
     public static final String LAST_MODE = "nl.muar.sa.projectsnorlax.lastmode";            // The user wants to default to the last place they looked at
@@ -197,6 +215,86 @@ public class MainActivity extends AppCompatActivity
             default:
                 return super.onOptionsItemSelected(item);
         }
+    }
+
+    @Override
+    protected void onPause(){
+        super.onPause();
+        cdt.cancel();
+    }
+
+    @Override
+    protected void onResume(){
+        super.onResume();
+        startOpenChecker();
+    }
+
+    public String compareTime(String openString, String closeString, Date current) {
+        int openingDif = 0;
+        int closingDif = 0;
+
+        try {
+            openingDif = checkTime(openString, current);
+            Log.i(TAG, "Minutes till open: " + openingDif);
+            closingDif = checkTime(closeString, current);
+            Log.i(TAG, "Minutes till closing " + closingDif);
+
+        } catch (ParseException e) {
+            Log.w(TAG, "Failed to parse given date to calendar object");
+        }
+
+        if (openingDif > 0) {
+            if (openingDif < 30) {
+                return getString(R.string.open_text_start_1, openingDif);
+            } else {
+                return getString(R.string.open_text_start_2, openString);
+            }
+        } else if (closingDif > 0) {
+            if (closingDif < 30) {
+                return getString(R.string.close_text_start_1, closingDif);
+            } else {
+                return getString(R.string.close_text_start_2, closeString);
+            }
+        } else {
+            return "";
+        }
+    }
+
+    public void startOpenChecker(){
+        cdt = new CountDownTimer(120_000, 30_000){
+            public void onTick(long millisUntilFinished){
+
+                //Uncomment the following lines when helper class and method are implemented...
+                //Cursor cursor = eatHelper.getTimesByRestaurantName();
+                //String openString = cursor.getString(cursor.getColumnIndexOrThrow("opening_time"));
+                //String closeString = cursor.getString(cursor.getColumnIndexOrThrow("closing_time"));
+
+                String openString = "9:00"; // <- Temp hard coded string
+                String closeString = "14:30"; // <- Temp hard coded string
+
+                String outputString = compareTime(openString, closeString, new Date());
+                TextView timeText = (TextView) findViewById(R.id.closingtimetext);
+                timeText.setText(outputString);
+            }
+
+            public void onFinish(){
+                startOpenChecker();
+            }
+        }.start();
+    }
+
+    public int checkTime(String openString, Date current) throws ParseException {
+        DateFormat timeFormat = new SimpleDateFormat("HH:mm", Locale.UK);
+        Date eventTime = timeFormat.parse(openString);
+        int eventMinute = getMinuteOfDay(eventTime);
+        int currentMinute = getMinuteOfDay(current);
+        return eventMinute - currentMinute;
+    }
+
+    public int getMinuteOfDay(Date date){
+        Calendar c = Calendar.getInstance();
+        c.setTime(date);
+        return (c.get(Calendar.HOUR_OF_DAY) * 60) + (c.get(Calendar.MINUTE));
     }
 
     @SuppressWarnings("MissingPermission")
