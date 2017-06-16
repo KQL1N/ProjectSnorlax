@@ -24,8 +24,8 @@ public class EatHelper extends SQLiteOpenHelper{
             EatContract.Restaurant.COLUMN_NAME_NAME + " TEXT," +
             EatContract.Restaurant.COLUMN_NAME_LONGITUDE + " REAL," +
             EatContract.Restaurant.COLUMN_NAME_LATITUDE + " REAL," +
-            EatContract.Restaurant.COLUMN_NAME_OPENING_TIME + " INTEGER," +
-            EatContract.Restaurant.COLUMN_NAME_CLOSING_TIME + " INTEGER)";
+            EatContract.Restaurant.COLUMN_NAME_OPENING_TIME + " TEXT," +
+            EatContract.Restaurant.COLUMN_NAME_CLOSING_TIME + " TEXT)";
 
     private static final String SQL_DELETE_RESTAURANT_TABLE =
             "DROP TABLE IF EXISTS " +  EatContract.Restaurant.TABLE_NAME;
@@ -39,9 +39,9 @@ public class EatHelper extends SQLiteOpenHelper{
             EatContract.MenuItem.COLUMN_NAME_DESCRIPTION + " TEXT," +
             EatContract.MenuItem.COLUMN_NAME_PRICE + " REAL," +
             EatContract.MenuItem.COLUMN_NAME_SECTION + " TEXT," +
-            EatContract.MenuItem.COLUMN_NAME_RESTARAUNT_ID + " INTEGER," +
+            EatContract.MenuItem.COLUMN_NAME_RESTAURANT_ID + " INTEGER," +
             EatContract.MenuItem.COLUMN_NAME_DATE + " INTEGER," +
-            " FOREIGN KEY ("+EatContract.MenuItem.COLUMN_NAME_RESTARAUNT_ID+") REFERENCES "+EatContract.Restaurant.TABLE_NAME+"("+EatContract.Restaurant._ID+")"
+            " FOREIGN KEY ("+EatContract.MenuItem.COLUMN_NAME_RESTAURANT_ID +") REFERENCES "+EatContract.Restaurant.TABLE_NAME+"("+EatContract.Restaurant._ID+")"
             + "ON DELETE CASCADE )";
 
     private static final String SQL_DELETE_MENU_ITEM =
@@ -76,15 +76,15 @@ public class EatHelper extends SQLiteOpenHelper{
         Log.i(TAG, "Restaurant DB downgraded.");
     }
 
-    public long insertRestaurant(String name, double longitude, double latitude,  Date openingTime, Date closingTime){
+    public long insertRestaurant(String name, double longitude, double latitude,  String openingTime, String closingTime){
         SQLiteDatabase db = this.getWritableDatabase();
 
         ContentValues values = new ContentValues();
         values.put(EatContract.Restaurant.COLUMN_NAME_NAME, name);
         values.put(EatContract.Restaurant.COLUMN_NAME_LONGITUDE, longitude);
         values.put(EatContract.Restaurant.COLUMN_NAME_LATITUDE, latitude);
-        values.put(EatContract.Restaurant.COLUMN_NAME_OPENING_TIME, openingTime.getTime());
-        values.put(EatContract.Restaurant.COLUMN_NAME_CLOSING_TIME, closingTime.getTime());
+        values.put(EatContract.Restaurant.COLUMN_NAME_OPENING_TIME, openingTime);
+        values.put(EatContract.Restaurant.COLUMN_NAME_CLOSING_TIME, closingTime);
 
         long newRowId = db.insert(EatContract.Restaurant.TABLE_NAME, null, values);
         Log.v(TAG, "Restaurant at " + name + " added to the DB at row " + newRowId
@@ -101,7 +101,7 @@ public class EatHelper extends SQLiteOpenHelper{
         values.put(EatContract.MenuItem.COLUMN_NAME_PRICE, price);
         values.put(EatContract.MenuItem.COLUMN_NAME_SECTION, section);
         values.put(EatContract.MenuItem.COLUMN_NAME_DATE, date.getTime());
-        values.put(EatContract.MenuItem.COLUMN_NAME_RESTARAUNT_ID, restaurantId);
+        values.put(EatContract.MenuItem.COLUMN_NAME_RESTAURANT_ID, restaurantId);
 
         long newRowId = db.insert(EatContract.MenuItem.TABLE_NAME, null, values);
         Log.v(TAG, description + "added to " + section + ", available on " + date
@@ -110,15 +110,15 @@ public class EatHelper extends SQLiteOpenHelper{
     }
 
     // Update a Restaurant
-    public void updateRestaurant(Long _id, String name, double longitude, double latitude, Date openingTime, Date closingTime){
+    public void updateRestaurant(Long _id, String name, double longitude, double latitude, String openingTime, String closingTime){
         SQLiteDatabase db = this.getWritableDatabase();
 
         ContentValues values = new ContentValues();
         values.put(EatContract.Restaurant.COLUMN_NAME_NAME, name);
         values.put(EatContract.Restaurant.COLUMN_NAME_LONGITUDE, longitude);
         values.put(EatContract.Restaurant.COLUMN_NAME_LATITUDE, latitude);
-        values.put(EatContract.Restaurant.COLUMN_NAME_OPENING_TIME, openingTime.getTime());
-        values.put(EatContract.Restaurant.COLUMN_NAME_CLOSING_TIME, closingTime.getTime());
+        values.put(EatContract.Restaurant.COLUMN_NAME_OPENING_TIME, openingTime);
+        values.put(EatContract.Restaurant.COLUMN_NAME_CLOSING_TIME, closingTime);
 
         String selection = EatContract.Restaurant._ID + " = ? ";
         String [] selectionArgs = {_id.toString()};
@@ -234,7 +234,7 @@ public class EatHelper extends SQLiteOpenHelper{
                 EatContract.MenuItem.COLUMN_NAME_DATE
         };
 
-        String selection = EatContract.MenuItem.COLUMN_NAME_RESTARAUNT_ID + " = ?";
+        String selection = EatContract.MenuItem.COLUMN_NAME_RESTAURANT_ID + " = ?";
         String[] selectionArgs = {restaurantId.toString()};
 
         String sortOrder = EatContract.MenuItem.COLUMN_NAME_SECTION + " ASC";
@@ -285,7 +285,7 @@ public class EatHelper extends SQLiteOpenHelper{
                 EatContract.MenuItem.COLUMN_NAME_DESCRIPTION,
                 EatContract.MenuItem.COLUMN_NAME_PRICE,
                 EatContract.MenuItem.COLUMN_NAME_SECTION,
-                EatContract.MenuItem.COLUMN_NAME_RESTARAUNT_ID
+                EatContract.MenuItem.COLUMN_NAME_RESTAURANT_ID
         };
 
         String selection = EatContract.Restaurant._ID + " = ?" + " AND " +
