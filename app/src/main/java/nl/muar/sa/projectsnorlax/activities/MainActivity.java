@@ -13,6 +13,7 @@ import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.view.MotionEventCompat;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.os.CountDownTimer;
@@ -21,13 +22,26 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+
+import android.view.MotionEvent;
+import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
+
 import nl.muar.sa.projectsnorlax.db.EatContract;
 import nl.muar.sa.projectsnorlax.db.EatHelper;
+import nl.muar.sa.projectsnorlax.providers.MenuItemCursorAdapter;
 import nl.muar.sa.projectsnorlax.util.UserPreferenceManager;
 import static nl.muar.sa.projectsnorlax.util.UserPreferenceManager.LAST_LOCATION;
 import static nl.muar.sa.projectsnorlax.util.UserPreferenceManager.PREFERENCE_MODE;
@@ -35,8 +49,10 @@ import static nl.muar.sa.projectsnorlax.util.UserPreferenceManager.PREFERRED_LOC
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 import nl.muar.sa.projectsnorlax.R;
 
@@ -66,7 +82,6 @@ public class MainActivity extends AppCompatActivity
 
     private long currentId = 1;
     private final static String TIME_FORMAT = "HHmm";
-    private int[] menuLists = {R.id.menu_item_list};
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -91,6 +106,7 @@ public class MainActivity extends AppCompatActivity
         pager = (ViewPager) findViewById(R.id.pagingview);
         adapter = new Page(getSupportFragmentManager());
         pager.setAdapter(adapter);
+        pager.setOffscreenPageLimit(5);
         PageListener listener = new PageListener();
         pager.setOnPageChangeListener(listener);
 
@@ -124,11 +140,6 @@ public class MainActivity extends AppCompatActivity
 
         eatHelper = new EatHelper(this);
 
-        eatHelper.insertRestaurant("Guildford", 100, 100, "1200", "1400");
-        eatHelper.insertMenuItem("Fish", "Some nice cod", 3.50, "Fish Stop", new Date(), (long)0);
-
-        fillListWithMenuItems();
-
     }
 
     private class PageListener extends ViewPager.SimpleOnPageChangeListener
@@ -140,6 +151,7 @@ public class MainActivity extends AppCompatActivity
             Log.i(TAG, "page selected " + position);
             currentPage= position;
             currentDayText.setText(days[currentPage]);
+            fillListWithMenuItems(position);
         }
 
     }
@@ -286,19 +298,18 @@ public class MainActivity extends AppCompatActivity
         }
     }
 
-    public void fillListWithMenuItems(){
+    public void fillListWithMenuItems(int position){
         List<Calendar> weekRange= calculateDateRange(new Date());
 
-        for(int i = 0; i <= 5; i++){
-            Date dayStart = weekRange.get(0).getTime();
-            weekRange.get(0).add(Calendar.DAY_OF_WEEK, 1);
-            Date dayEnd = weekRange.get(0).getTime();
-            Cursor cursor = eatHelper.getMenuItemGivenDateAndLocation(currentId, dayStart, dayEnd);
-            MenuItemCursorAdapter menuAdapter = new MenuItemCursorAdapter(this, cursor);
-            Log.i(TAG, cursor.getString(cursor.getColumnIndexOrThrow(EatContract.MenuItem.COLUMN_NAME_NAME)));
-            ListView dayView = (ListView)pager.getChildAt(i).findViewById(R.id.menu_item_list);
-            dayView.setAdapter(menuAdapter);
-        }
+        Date dayStart = weekRange.get(0).getTime();
+        weekRange.get(0).add(Calendar.DAY_OF_WEEK, position);
+        Date dayEnd = weekRange.get(0).getTime();
+        Cursor cursor = eatHelper.getMenuItemGivenDateAndLocation(currentId, dayStart, dayEnd);
+        cursor.moveToFirst();
+        MenuItemCursorAdapter menuAdapter = new MenuItemCursorAdapter(this, cursor);
+        Log.i(TAG, cursor.getString(cursor.getColumnIndexOrThrow(EatContract.MenuItem.COLUMN_NAME_NAME)));
+        ListView dayView = (ListView)pager.getChildAt(position).findViewById(R.id.menu_item_list);
+        dayView.setAdapter(menuAdapter);
     }
 
     public List<Calendar> calculateDateRange(Date currentDate){
@@ -311,8 +322,8 @@ public class MainActivity extends AppCompatActivity
         cStart.set(Calendar.YEAR, Calendar.MONTH, Calendar.DATE, 0, 0, 0);
         weekRange.add(cStart);
         Log.i(TAG, "Week begins: " + cStart.getTime());
-        Log.i(TAG, "Week ends: " + cStart.getTime());
         cStart.add(Calendar.DAY_OF_WEEK, - today + Calendar.FRIDAY);
+        Log.i(TAG, "Week ends: " + cStart.getTime());
         weekRange.add(cStart);
         return weekRange;
     }
@@ -321,11 +332,10 @@ public class MainActivity extends AppCompatActivity
         cdt = new CountDownTimer(120_000, 30_000){
             public void onTick(long millisUntilFinished){
 
-                //Cursor cursor = eatHelper.getAllMenuItemsGivenRestaurantId(currentId);
-                //String openString = cursor.getString(cursor.getColumnIndexOrThrow(EatContract.Restaurant.COLUMN_NAME_OPENING_TIME));
-                //String closeString = cursor.getString(cursor.getColumnIndexOrThrow(EatContract.Restaurant.COLUMN_NAME_CLOSING_TIME));
-                String openString = "1200";
-                String closeString = "1400";
+                Cursor cursor = eatHelper.getRestaurantOpeningClosingTimesGivenLocation(currentId);
+                cursor.moveToFirst();
+                String openString = cursor.getString(cursor.getColumnIndexOrThrow(EatContract.Restaurant.COLUMN_NAME_OPENING_TIME));
+                String closeString = cursor.getString(cursor.getColumnIndexOrThrow(EatContract.Restaurant.COLUMN_NAME_CLOSING_TIME));
 
                 String outputString = compareTime(openString, closeString, new Date());
                 TextView timeText = (TextView) findViewById(R.id.closingtimetext);

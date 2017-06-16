@@ -281,6 +281,7 @@ public class EatHelper extends SQLiteOpenHelper{
         SQLiteDatabase db = this.getReadableDatabase();
 
         String[] projection = {
+                EatContract.MenuItem._ID,
                 EatContract.MenuItem.COLUMN_NAME_NAME,
                 EatContract.MenuItem.COLUMN_NAME_DESCRIPTION,
                 EatContract.MenuItem.COLUMN_NAME_PRICE,
