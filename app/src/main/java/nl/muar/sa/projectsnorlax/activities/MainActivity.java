@@ -23,6 +23,8 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.CursorAdapter;
+import android.widget.ListView;
 import android.widget.Toast;
 
 import com.android.volley.Request;
@@ -44,6 +46,9 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import java.util.ArrayList;
 import java.util.List;
+
+import nl.muar.sa.projectsnorlax.db.EatHelper;
+import nl.muar.sa.projectsnorlax.providers.MenuItemCursorAdapter;
 import nl.muar.sa.projectsnorlax.util.UserPreferenceManager;
 import static nl.muar.sa.projectsnorlax.util.UserPreferenceManager.LAST_LOCATION;
 import static nl.muar.sa.projectsnorlax.util.UserPreferenceManager.PREFERENCE_MODE;
@@ -65,7 +70,7 @@ import nl.muar.sa.projectsnorlax.R;
 public class MainActivity extends AppCompatActivity
 {
     public static final String TAG = "Main Activity";
-    //private EatHelper eatHelper;
+    private EatHelper eatHelper;
     CountDownTimer cdt;
 
     public static final String GPS_MODE = "nl.muar.sa.projectsnorlax.gpsmode";              // The user wants to default to the nearest locations
@@ -87,6 +92,10 @@ public class MainActivity extends AppCompatActivity
     private static int PAGE_NUM = 5;
     private ViewPager pager;
     private PagerAdapter adapter;
+
+    private long currentId = 1;
+    private final static String TIME_FORMAT = "HHmm";
+    private int[] menuLists = {R.id.menu_item_list};
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -124,41 +133,6 @@ public class MainActivity extends AppCompatActivity
             currentPage= position;
             currentDayText.setText(days[currentPage]);
         }
-
-        View view1 = (View) findViewById(R.id.view1);
-        View view2 = (View) findViewById(R.id.view2);
-        View view3 = (View) findViewById(R.id.view3);
-        View view4 = (View) findViewById(R.id.view4);
-        View view5 = (View) findViewById(R.id.view5);
-        View view6 = (View) findViewById(R.id.view6);
-
-        final List<View> viewBoxList = new ArrayList<View>();
-        viewBoxList.add(0, view1);
-        viewBoxList.add(1, view2);
-        viewBoxList.add(2, view3);
-        viewBoxList.add(3, view4);
-        viewBoxList.add(4, view5);
-        viewBoxList.add(5, view6);
-
-
-        // if network connectivity = true;
-        RequestQueue queue = Volley.newRequestQueue(this);
-        String url = "http://10.6.7.73:8080/weeksmen";
-
-        StringRequest menuRequest = new StringRequest(Request.Method.GET, url, new Response.Listener<String>() {
-                @Override
-                public void onResponse(String response) {
-                    // Simon's Parsing Stuff
-                }
-            }, new Response.ErrorListener() {
-            @Override
-            public void onErrorResponse(VolleyError error) {
-                for (View view : viewBoxList) {
-                    view.setBackgroundColor(getResources().getColor(R.color.red));
-                }
-            }
-        });
-        queue.add(menuRequest);
     }
 
     @Override
@@ -303,17 +277,42 @@ public class MainActivity extends AppCompatActivity
         }
     }
 
+    public void fillListWithMenuItems(){
+        List<Calendar> weekRange= calculateDateRange(new Date());
+
+        for(int i = 0; i <= 5; i++){
+            Date dayStart = weekRange.get(0).getTime();
+            weekRange.get(0).add(Calendar.DAY_OF_WEEK, 1);
+            Date dayEnd = weekRange.get(0).getTime();
+            //Cursor cursor = eatHelper.getMenuItemByDateAndLocation(currentLocation, dayStart, dayEnd);
+            Cursor cursor = null; //Replace this when method above works
+            MenuItemCursorAdapter menuAdapter = new MenuItemCursorAdapter(this, cursor);
+            ListView dayView = (ListView)pager.getChildAt(i).findViewById(R.id.menu_item_list);
+            dayView.setAdapter(menuAdapter);
+        }
+    }
+
+    public List<Calendar> calculateDateRange(Date currentDate){
+        List<Calendar> weekRange = new ArrayList<Calendar>();
+        Calendar cStart = Calendar.getInstance();
+        cStart.setFirstDayOfWeek(Calendar.MONDAY);
+        cStart.setTime(currentDate);
+        int today = cStart.get(Calendar.DAY_OF_WEEK);
+        cStart.add(Calendar.DAY_OF_WEEK, - today + Calendar.MONDAY);
+        cStart.set(Calendar.YEAR, Calendar.MONTH, Calendar.DATE, 0, 0, 0);
+        weekRange.add(cStart);
+        cStart.add(Calendar.DAY_OF_WEEK, - today + Calendar.FRIDAY);
+        weekRange.add(cStart);
+        return weekRange;
+    }
+
     public void startOpenChecker(){
         cdt = new CountDownTimer(120_000, 30_000){
             public void onTick(long millisUntilFinished){
 
-                //Uncomment the following lines when helper class and method are implemented...
-                //Cursor cursor = eatHelper.getTimesByRestaurantName();
-                //String openString = cursor.getString(cursor.getColumnIndexOrThrow("opening_time"));
-                //String closeString = cursor.getString(cursor.getColumnIndexOrThrow("closing_time"));
-
-                String openString = "9:00"; // <- Temp hard coded string
-                String closeString = "14:30"; // <- Temp hard coded string
+                Cursor cursor = eatHelper.getAllMenuItemsGivenRestaurantId(currentId);
+                String openString = cursor.getString(cursor.getColumnIndexOrThrow("opening_time"));
+                String closeString = cursor.getString(cursor.getColumnIndexOrThrow("closing_time"));
 
                 String outputString = compareTime(openString, closeString, new Date());
                 TextView timeText = (TextView) findViewById(R.id.closingtimetext);
@@ -327,7 +326,7 @@ public class MainActivity extends AppCompatActivity
     }
 
     public int checkTime(String openString, Date current) throws ParseException {
-        DateFormat timeFormat = new SimpleDateFormat("HH:mm", Locale.UK);
+        DateFormat timeFormat = new SimpleDateFormat(TIME_FORMAT, Locale.UK);
         Date eventTime = timeFormat.parse(openString);
         int eventMinute = getMinuteOfDay(eventTime);
         int currentMinute = getMinuteOfDay(current);
