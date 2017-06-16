@@ -29,7 +29,7 @@ import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import nl.muar.sa.projectsnorlax.util.UserPreferenceManager;
-import sa.muar.nl.projectsnorlax.R;
+import nl.muar.sa.projectsnorlax.R;
 import static nl.muar.sa.projectsnorlax.util.UserPreferenceManager.LAST_LOCATION;
 import static nl.muar.sa.projectsnorlax.util.UserPreferenceManager.PREFERENCE_MODE;
 import static nl.muar.sa.projectsnorlax.util.UserPreferenceManager.PREFERRED_LOCATION;
@@ -94,10 +94,6 @@ public class MainActivity extends AppCompatActivity
     {
         switch (item.getItemId())
         {
-            case R.id.menugloucester:
-                Log.i(TAG, "Gloucester Menu Item Clicked");
-                mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
-                getLocation();
             case R.id.menuguildford:
                 Log.i(TAG, "Guildford Menu Item Clicked");
                 currentLocation = GUILDFORD;
