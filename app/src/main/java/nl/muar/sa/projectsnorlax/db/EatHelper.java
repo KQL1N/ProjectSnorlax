@@ -358,7 +358,7 @@ public class EatHelper extends SQLiteOpenHelper{
         return cursor;
     }
 
-    public Cursor getRestaurantIdGivenLocation(String name){
+    public Long getRestaurantIdGivenLocation(String name){
         SQLiteDatabase db = this.getReadableDatabase();
 
         String[] projection = {
@@ -381,10 +381,12 @@ public class EatHelper extends SQLiteOpenHelper{
                 null
         );
 
-        return cursor;
+        cursor.moveToFirst();
+        Long restaurantId = cursor.getLong(cursor.getColumnIndex(EatContract.Restaurant._ID));
+        return restaurantId;
     }
 
-    public Cursor getMenuItemIdGivenDescription(String description){
+    public Long getMenuItemIdGivenDescription(String description){
         SQLiteDatabase db = this.getReadableDatabase();
 
         String[] projection = {
@@ -404,7 +406,9 @@ public class EatHelper extends SQLiteOpenHelper{
                 null
         );
 
-        return cursor;
+        cursor.moveToFirst();
+        Long menuItemId = cursor.getLong(cursor.getColumnIndex(EatContract.MenuItem._ID));
+        return menuItemId;
     }
 
 
