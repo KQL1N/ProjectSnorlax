@@ -48,6 +48,11 @@ import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
+
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -82,8 +87,8 @@ public class MainActivity extends AppCompatActivity
     public static final String GPS_MODE = "nl.muar.sa.projectsnorlax.gpsmode";              // The user wants to default to the nearest locations
     public static final String LAST_MODE = "nl.muar.sa.projectsnorlax.lastmode";            // The user wants to default to the last place they looked at
     public static final String SPECIFIED_MODE = "nl.muar.sa.projectsnorlax.specifiedmode";  // The user wants to default to a specific location from the list
-    public static final String LONDON = "London Blue Fin";
-    public static final String GUILDFORD = "Guildford Canteen";
+    public static final String LONDON = "11th Floor, Blue Fin";
+    public static final String GUILDFORD = "Waterside House Restaurant";
     public String currentLocation;
     public TextView currentLocationText;
     public TextView currentDayText;
@@ -173,9 +178,7 @@ public class MainActivity extends AppCompatActivity
                                     Log.d("", "Section: " + m.getSection() + "\n");
                                     Log.d("", "Date: " + m.getDate() + "");
                                     Double itemPrice = m.getPrice().doubleValue();
-                                    Cursor c = eatHelper.getRestaurantIdGivenLocation(r.getName());
-                                    c.moveToFirst();
-                                    Long theID = c.getLong(c.getColumnIndex(EatContract.Restaurant._ID));
+                                    Long theID = eatHelper.getRestaurantIdGivenLocation(r.getName());
 
                                     eatHelper.insertMenuItem(m.getName(), m.getDescription(), itemPrice, m.getSection(), m.getDate(), theID);
                                 }
@@ -266,7 +269,8 @@ public class MainActivity extends AppCompatActivity
 
                 mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
                 getLocation();
-
+                currentLocation = loadLastLocation();
+                currentLocationText.setText(currentLocation);
                 //savePreferenceMode(GPS_MODE);
                 // TODO; LOAD FROM GPS
                 //printStuff();
@@ -419,8 +423,8 @@ public class MainActivity extends AppCompatActivity
             tempOfficeLocation.setLatitude(locationDbCursor.getFloat(locationDbCursor.getColumnIndex(EatContract.Restaurant.COLUMN_NAME_LONGITUDE)));
 
             float distance2 = location.distanceTo(tempOfficeLocation);
-
-            if(distance2<distance){
+            Log.w(TAG, "The distance location is NOT null "+closestLocation.getProvider());
+            if(distance2>distance){
                 distance = distance2;
                 closestLocation = tempOfficeLocation;
             }
@@ -431,7 +435,7 @@ public class MainActivity extends AppCompatActivity
             Log.w(TAG, "The closest location is null");
             return "London";
         }
-        Log.w(TAG, "The closest location is NOT null");
+        Log.w(TAG, "The closest location is NOT null "+closestLocation.getProvider());
         return closestLocation.getProvider();
     }
 
@@ -481,7 +485,7 @@ public class MainActivity extends AppCompatActivity
                 break;
 
             default:
-                savePreferredLocation(LAST_MODE);
+                savePreferredLocation(GPS_MODE);
                 break;
         }
         return output;
