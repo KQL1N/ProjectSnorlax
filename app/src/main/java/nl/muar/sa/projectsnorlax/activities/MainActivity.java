@@ -156,6 +156,13 @@ public class MainActivity extends AppCompatActivity
             //TODO (johnjerome) add function for checking the local repository for recent data
         }
 
+        eatHelper = new EatHelper(this);
+
+        eatHelper.insertRestaurant("Guildford", 100, 100, new Date(), new Date());
+        eatHelper.insertMenuItem("Fish", "Some nice cod", 3.50, "Fish Stop", new Date(), (long)0);
+
+        fillListWithMenuItems();
+
     }
 
     private class PageListener extends ViewPager.SimpleOnPageChangeListener
@@ -320,9 +327,9 @@ public class MainActivity extends AppCompatActivity
             Date dayStart = weekRange.get(0).getTime();
             weekRange.get(0).add(Calendar.DAY_OF_WEEK, 1);
             Date dayEnd = weekRange.get(0).getTime();
-            //Cursor cursor = eatHelper.getMenuItemByDateAndLocation(currentLocation, dayStart, dayEnd);
-            Cursor cursor = null; //Replace this when method above works
+            Cursor cursor = eatHelper.getMenuItemGivenDateAndLocation(currentId, dayStart, dayEnd);
             MenuItemCursorAdapter menuAdapter = new MenuItemCursorAdapter(this, cursor);
+            Log.i(TAG, cursor.getString(cursor.getColumnIndexOrThrow(EatContract.MenuItem.COLUMN_NAME_NAME)));
             ListView dayView = (ListView)pager.getChildAt(i).findViewById(R.id.menu_item_list);
             dayView.setAdapter(menuAdapter);
         }
@@ -337,6 +344,8 @@ public class MainActivity extends AppCompatActivity
         cStart.add(Calendar.DAY_OF_WEEK, - today + Calendar.MONDAY);
         cStart.set(Calendar.YEAR, Calendar.MONTH, Calendar.DATE, 0, 0, 0);
         weekRange.add(cStart);
+        Log.i(TAG, "Week begins: " + cStart.getTime());
+        Log.i(TAG, "Week ends: " + cStart.getTime());
         cStart.add(Calendar.DAY_OF_WEEK, - today + Calendar.FRIDAY);
         weekRange.add(cStart);
         return weekRange;
@@ -346,9 +355,11 @@ public class MainActivity extends AppCompatActivity
         cdt = new CountDownTimer(120_000, 30_000){
             public void onTick(long millisUntilFinished){
 
-                Cursor cursor = eatHelper.getAllMenuItemsGivenRestaurantId(currentId);
-                String openString = cursor.getString(cursor.getColumnIndexOrThrow("opening_time"));
-                String closeString = cursor.getString(cursor.getColumnIndexOrThrow("closing_time"));
+                //Cursor cursor = eatHelper.getAllMenuItemsGivenRestaurantId(currentId);
+                //String openString = cursor.getString(cursor.getColumnIndexOrThrow(EatContract.Restaurant.COLUMN_NAME_OPENING_TIME));
+                //String closeString = cursor.getString(cursor.getColumnIndexOrThrow(EatContract.Restaurant.COLUMN_NAME_CLOSING_TIME));
+                String openString = "1200";
+                String closeString = "1400";
 
                 String outputString = compareTime(openString, closeString, new Date());
                 TextView timeText = (TextView) findViewById(R.id.closingtimetext);
@@ -415,6 +426,7 @@ public class MainActivity extends AppCompatActivity
                 null,
                 null,
                 null);
+        locationDbCursor = cursor;
     }
     private String compareDistance(Location location) {
         initialiseLocationDb();
