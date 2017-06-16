@@ -6,4 +6,8 @@
     <string name="option_name_placeholder">Option Name</string>
     <string name="option_description_placeholder">The description of the option will go here</string>
     <string name="title_activity_main">MainActivity</string>
+    <string name="open_text_start_1">The restaurant opens in </string>
+    <string name="open_text_start_2">The restaurant opens at </string>
+    <string name="open_text_end"> minutes</string>
+    <string name="close_text_start">The restaurant closes in</string>
 </resources>
