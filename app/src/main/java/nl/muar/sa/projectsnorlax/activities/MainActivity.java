@@ -56,6 +56,10 @@ import com.google.android.gms.tasks.Task;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
+
+import nl.muar.sa.projectsnorlax.db.EatContract;
+import nl.muar.sa.projectsnorlax.db.EatHelper;
+import nl.muar.sa.projectsnorlax.parser.Restaurant;
 import nl.muar.sa.projectsnorlax.util.UserPreferenceManager;
 import nl.muar.sa.projectsnorlax.R;
 import static nl.muar.sa.projectsnorlax.util.UserPreferenceManager.LAST_LOCATION;
@@ -78,7 +82,7 @@ import nl.muar.sa.projectsnorlax.R;
 public class MainActivity extends AppCompatActivity
 {
     public static final String TAG = "Main Activity";
-    //private EatHelper eatHelper;
+    private EatHelper eatHelper;
     CountDownTimer cdt;
 
     public static final String GPS_MODE = "nl.muar.sa.projectsnorlax.gpsmode";              // The user wants to default to the nearest locations
@@ -105,6 +109,8 @@ public class MainActivity extends AppCompatActivity
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
+
+         eatHelper = new EatHelper(getApplicationContext());
         // Basics
         Log.i(TAG, "Creating Activity");
         super.onCreate(savedInstanceState);
@@ -158,6 +164,7 @@ public class MainActivity extends AppCompatActivity
 
                             for (Restaurant r : restaurants) {
                                 Log.d("Menu Request", "\n" + r.getName());
+                                eatHelper.insertRestaurant(r.getName(), r.getLongitude(), r.getLatitude(), r.getOpeningTime(), r.getClosingTime());
 
                                 //a list with the all the menu items inside it for the current restaurant;
                                 List<nl.muar.sa.projectsnorlax.parser.MenuItem> MIlist = r.getMenuItems();
@@ -169,6 +176,12 @@ public class MainActivity extends AppCompatActivity
                                     Log.d("", "Price: " + m.getPrice() + "\n");
                                     Log.d("", "Section: " + m.getSection() + "\n");
                                     Log.d("", "Date: " + m.getDate() + "");
+                                    Double itemPrice = m.getPrice().doubleValue();
+                                    Cursor c = eatHelper.getRestaurantIdGivenLocation(r.getName());
+                                    c.moveToFirst();
+                                    Long theID = c.getLong(c.getColumnIndex(EatContract.Restaurant._ID));
+
+                                    eatHelper.insertMenuItem(m.getName(), m.getDescription(), itemPrice, m.getSection(), m.getDate(), theID);
                                 }
                             }
                             hasbeenUsed = true;
