@@ -1,9 +1,13 @@
 package nl.muar.sa.projectsnorlax.activities;
 
 import android.Manifest;
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.location.Location;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
@@ -91,6 +95,7 @@ public class MainActivity extends AppCompatActivity
             getLocation();
         }
 
+        // Creating instances of all the view, delete at will
         View view1 = (View) findViewById(R.id.view1);
         View view2 = (View) findViewById(R.id.view2);
         View view3 = (View) findViewById(R.id.view3);
@@ -98,6 +103,7 @@ public class MainActivity extends AppCompatActivity
         View view5 = (View) findViewById(R.id.view5);
         View view6 = (View) findViewById(R.id.view6);
 
+        // Putting the view instances in a list for iteration purposes
         final List<View> viewBoxList = new ArrayList<View>();
         viewBoxList.add(0, view1);
         viewBoxList.add(1, view2);
@@ -106,25 +112,36 @@ public class MainActivity extends AppCompatActivity
         viewBoxList.add(4, view5);
         viewBoxList.add(5, view6);
 
+        // Boolean for whether network connection is true or false
+        boolean netConnection = isNetworkAvailable();
 
-        // if network connectivity = true;
-        RequestQueue queue = Volley.newRequestQueue(this);
-        String url = "http://10.6.7.73:8080/weeksmen";
+        // If statement for true or false network connection
+        if (netConnection) {
+            RequestQueue queue = Volley.newRequestQueue(this);
+            // URL of web server
+            String url = "http://sa.muar.nl/weeksmenu";
 
-        StringRequest menuRequest = new StringRequest(Request.Method.GET, url, new Response.Listener<String>() {
+            StringRequest menuRequest = new StringRequest(Request.Method.GET, url, new Response.Listener<String>() {
                 @Override
                 public void onResponse(String response) {
                     // Simon's Parsing Stuff
                 }
             }, new Response.ErrorListener() {
-            @Override
-            public void onErrorResponse(VolleyError error) {
-                for (View view : viewBoxList) {
-                    view.setBackgroundColor(getResources().getColor(R.color.red));
+                // Iterating through the views making them red to show that there was an error
+                @Override
+                public void onErrorResponse(VolleyError error) {
+                    for (View view : viewBoxList) {
+                        view.setBackgroundColor(getResources().getColor(R.color.red));
+                    }
+                    //TODO (johnjerome) add function to check local repository in event of web server request error
                 }
-            }
-        });
-        queue.add(menuRequest);
+            });
+            queue.add(menuRequest);
+        } else {
+            Toast.makeText(this, "No network connection detected", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Cannot refresh menu while offline", Toast.LENGTH_LONG).show();
+            //TODO (johnjerome) add function for checking the local repository for recent data
+        }
     }
 
     @Override
@@ -347,4 +364,15 @@ public class MainActivity extends AppCompatActivity
                 return super.onTouchEvent(event);
         }
     }
+
+    // Method to check for a network connection
+    private boolean isNetworkAvailable() {
+        ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+
+        Log.i(TAG, "Checking for a network connection");
+
+        return activeNetworkInfo != null;
+    }
+
 }
