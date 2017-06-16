@@ -29,8 +29,8 @@ public class SampleTest {
     private String restaurantName = "Guildford";
     private double longitude = 51.242774;
     private double latitude = -0.615271;
-    private Date openingTime = new Date();
-    private Date closingTime = new Date();
+    private String openingTime = "1200";
+    private String closingTime = "1430";
     private String menuItemName = "Cream of Tomato";
     private String description = "Like your average tomato soup, but creamier";
     private double price = 3.50;
@@ -49,8 +49,6 @@ public class SampleTest {
     @Test
     public void addNewRestaurant(){
         eatHelper.clearDB();
-        openingTime.setTime(1497607875);
-        closingTime.setTime(1497607975);
         long newRestaurant = eatHelper.insertRestaurant(restaurantName, longitude, latitude, openingTime, closingTime);
         // Check that only one restaurant has been added
         assertEquals(1, newRestaurant);
@@ -64,8 +62,8 @@ public class SampleTest {
         assertEquals(restaurantName, cursor.getString(cursor.getColumnIndex(EatContract.Restaurant.COLUMN_NAME_NAME)));
         assertEquals(longitude, cursor.getDouble(cursor.getColumnIndex(EatContract.Restaurant.COLUMN_NAME_LONGITUDE)),0);
         assertEquals(latitude, cursor.getDouble(cursor.getColumnIndex(EatContract.Restaurant.COLUMN_NAME_LATITUDE)),0);
-        assertEquals(openingTime.getTime(), cursor.getInt(cursor.getColumnIndex(EatContract.Restaurant.COLUMN_NAME_OPENING_TIME)));
-        assertEquals(closingTime.getTime(), cursor.getInt(cursor.getColumnIndex(EatContract.Restaurant.COLUMN_NAME_CLOSING_TIME)));
+        assertEquals(openingTime, cursor.getString(cursor.getColumnIndex(EatContract.Restaurant.COLUMN_NAME_OPENING_TIME)));
+        assertEquals(closingTime, cursor.getString(cursor.getColumnIndex(EatContract.Restaurant.COLUMN_NAME_CLOSING_TIME)));
     }
 
     @Test
@@ -105,15 +103,14 @@ public class SampleTest {
 
         // New values
         String newRestaurantName = "GFord";
-        Date newClosingTime =  new Date();
-        newClosingTime.setTime(1400);
-        eatHelper.updateRestaurant(guildfordRestaurantId, newRestaurantName, longitude, latitude, openingTime,newClosingTime);
+        String newClosingTime = "1400";
+        eatHelper.updateRestaurant(guildfordRestaurantId, newRestaurantName, longitude, latitude, openingTime, newClosingTime);
 
         Cursor cursor = eatHelper.getAllRestaurants();
         assertEquals(1,cursor.getCount());
         cursor.moveToFirst();
         assertEquals(newRestaurantName, cursor.getString(cursor.getColumnIndex(EatContract.Restaurant.COLUMN_NAME_NAME)));
-        assertEquals(newClosingTime.getTime(), cursor.getLong(cursor.getColumnIndex(EatContract.Restaurant.COLUMN_NAME_CLOSING_TIME)));
+        assertEquals(newClosingTime, cursor.getString(cursor.getColumnIndex(EatContract.Restaurant.COLUMN_NAME_CLOSING_TIME)));
 
     }
 
@@ -185,8 +182,6 @@ public class SampleTest {
     @Test
     public void returnAllRestaurants(){
         eatHelper.clearDB();
-        openingTime.setTime(1497607875);
-        closingTime.setTime(1497607975);
         eatHelper.insertRestaurant(restaurantName, longitude, latitude, openingTime, closingTime);
         Cursor cursor = eatHelper.getAllRestaurants();
         cursor.moveToFirst();
@@ -194,8 +189,8 @@ public class SampleTest {
         assertEquals(restaurantName, cursor.getString(cursor.getColumnIndex(EatContract.Restaurant.COLUMN_NAME_NAME)));
         assertEquals(longitude, cursor.getDouble(cursor.getColumnIndex(EatContract.Restaurant.COLUMN_NAME_LONGITUDE)),0);
         assertEquals(latitude, cursor.getDouble(cursor.getColumnIndex(EatContract.Restaurant.COLUMN_NAME_LATITUDE)),0);
-        assertEquals(openingTime.getTime(), cursor.getInt(cursor.getColumnIndex(EatContract.Restaurant.COLUMN_NAME_OPENING_TIME)));
-        assertEquals(closingTime.getTime(), cursor.getInt(cursor.getColumnIndex(EatContract.Restaurant.COLUMN_NAME_CLOSING_TIME)));
+        assertEquals(openingTime, cursor.getString(cursor.getColumnIndex(EatContract.Restaurant.COLUMN_NAME_OPENING_TIME)));
+        assertEquals(closingTime, cursor.getString(cursor.getColumnIndex(EatContract.Restaurant.COLUMN_NAME_CLOSING_TIME)));
 
     }
 
@@ -203,8 +198,6 @@ public class SampleTest {
     public void getSingleMenuItemByDateAndLocation(){
         eatHelper.clearDB();
         // Create a restaurant
-        openingTime.setTime(1497607875);
-        closingTime.setTime(1497607975);
         Long guildfordRestaurantId =  eatHelper.insertRestaurant(restaurantName, longitude, latitude, openingTime, closingTime);
         // Create a new menu item for given restaurant
         date.setTime(1497607975);
@@ -224,21 +217,17 @@ public class SampleTest {
     @Test
     public void getRestaurantTimes(){
         eatHelper.clearDB();
-        openingTime.setTime(1497607875);
-        closingTime.setTime(1497607975);
         Long guildfordRestaurantId =  eatHelper.insertRestaurant(restaurantName, longitude, latitude, openingTime, closingTime);
         Cursor cursor = eatHelper.getRestaurantOpeningClosingTimesGivenLocation(guildfordRestaurantId);
         cursor.moveToFirst();
-        assertEquals(openingTime.getTime(), cursor.getDouble(cursor.getColumnIndex(EatContract.Restaurant.COLUMN_NAME_OPENING_TIME)),0);
-        assertEquals(closingTime.getTime(), cursor.getDouble(cursor.getColumnIndex(EatContract.Restaurant.COLUMN_NAME_CLOSING_TIME)),0);
+        assertEquals(openingTime, cursor.getString(cursor.getColumnIndex(EatContract.Restaurant.COLUMN_NAME_OPENING_TIME)));
+        assertEquals(closingTime, cursor.getString(cursor.getColumnIndex(EatContract.Restaurant.COLUMN_NAME_CLOSING_TIME)));
 
     }
 
     @Test
     public void getRestaurantCoordinates(){
         eatHelper.clearDB();
-        openingTime.setTime(1497607875);
-        closingTime.setTime(1497607975);
         Long guildfordRestaurantId =  eatHelper.insertRestaurant(restaurantName, longitude, latitude, openingTime, closingTime);
         Cursor cursor = eatHelper.getRestaurantCoordinatesGivenLocation(guildfordRestaurantId);
         assertEquals(1, cursor.getCount());
@@ -251,8 +240,6 @@ public class SampleTest {
     @Test
     public void getRestaurantIdGivenName(){
         eatHelper.clearDB();
-        openingTime.setTime(1497607875);
-        closingTime.setTime(1497607975);
         long guildfordRestaurantId =  eatHelper.insertRestaurant(restaurantName, longitude, latitude, openingTime, closingTime);
 
         Cursor cursor = eatHelper.getRestaurantIdGivenLocation(restaurantName);
@@ -265,8 +252,6 @@ public class SampleTest {
     public void getMenuItemIdGivenDescription(){
         eatHelper.clearDB();
         // Create a restaurant
-        openingTime.setTime(1497607875);
-        closingTime.setTime(1497607975);
         Long guildfordRestaurantId =  eatHelper.insertRestaurant(restaurantName, longitude, latitude, openingTime, closingTime);
         // Create a new menu item for given restaurant
         date.setTime(1497607975);
