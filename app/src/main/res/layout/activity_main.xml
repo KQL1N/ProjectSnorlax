@@ -24,92 +24,14 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"/>
 
-    <ScrollView
+
+    <android.support.v4.view.ViewPager
+        android:id="@+id/pagingview"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="1">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical">
-
-            <!-- Delete these views below. They are purely there to demonstrate the region covered by the scroll view-->
-
-            <!--GRAEME STUFF HERE-->
-            <View
-                android:layout_margin="4dp"
-                android:paddingLeft="4dp"
-                android:paddingRight="4dp"
-                android:paddingTop="4dp"
-                android:paddingBottom="4dp"
-                android:background="@color/colorPrimaryDark"
-                android:layout_width="match_parent"
-                android:layout_height="180dp">
-            </View>
-
-            <!--GRAEME STUFF HERE-->
-            <View
-                android:layout_margin="4dp"
-                android:paddingLeft="4dp"
-                android:paddingRight="4dp"
-                android:paddingTop="4dp"
-                android:paddingBottom="4dp"
-                android:background="@color/colorPrimaryDark"
-                android:layout_width="match_parent"
-                android:layout_height="180dp">
-            </View>
-
-            <!--GRAEME STUFF HERE-->
-            <View
-                android:layout_margin="4dp"
-                android:paddingLeft="4dp"
-                android:paddingRight="4dp"
-                android:paddingTop="4dp"
-                android:paddingBottom="4dp"
-                android:background="@color/colorPrimaryDark"
-                android:layout_width="match_parent"
-                android:layout_height="180dp">
-            </View>
-
-            <!--GRAEME STUFF HERE-->
-            <View
-                android:layout_margin="4dp"
-                android:paddingLeft="4dp"
-                android:paddingRight="4dp"
-                android:paddingTop="4dp"
-                android:paddingBottom="4dp"
-                android:background="@color/colorPrimaryDark"
-                android:layout_width="match_parent"
-                android:layout_height="180dp">
-            </View>
-
-            <!--GRAEME STUFF HERE-->
-            <View
-                android:layout_margin="4dp"
-                android:paddingLeft="4dp"
-                android:paddingRight="4dp"
-                android:paddingTop="4dp"
-                android:paddingBottom="4dp"
-                android:background="@color/colorPrimaryDark"
-                android:layout_width="match_parent"
-                android:layout_height="180dp">
-            </View>
-
-            <!--GRAEME STUFF HERE-->
-            <View
-                android:layout_margin="4dp"
-                android:paddingLeft="4dp"
-                android:paddingRight="4dp"
-                android:paddingTop="4dp"
-                android:paddingBottom="4dp"
-                android:background="@color/colorPrimaryDark"
-                android:layout_width="match_parent"
-                android:layout_height="180dp">
-            </View>
-
-        </LinearLayout>
-    </ScrollView>
+        android:layout_weight="1"
+        >
+    </android.support.v4.view.ViewPager>
 
     <TextView
         android:id="@+id/closingtimetext"
