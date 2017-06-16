@@ -48,6 +48,11 @@ import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
+
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -159,23 +164,14 @@ public class MainActivity extends AppCompatActivity
                             List<Restaurant> restaurants = gson.fromJson(response, listOfRestaurantsType);
 
                             for (Restaurant r : restaurants) {
-                                Log.d("Menu Request", "\n" + r.getName());
                                 eatHelper.insertRestaurant(r.getName(), r.getLongitude(), r.getLatitude(), r.getOpeningTime(), r.getClosingTime());
 
                                 //a list with the all the menu items inside it for the current restaurant;
                                 List<nl.muar.sa.projectsnorlax.parser.MenuItem> MIlist = r.getMenuItems();
 
                                 for (nl.muar.sa.projectsnorlax.parser.MenuItem m : MIlist) {
-                                    Log.d("", "Name: " + m.getName() + "\n");
-                                    Log.d("", "ID: " + m.getId() + "\n");
-                                    Log.d("", "Description: " + m.getDescription() + "\n");
-                                    Log.d("", "Price: " + m.getPrice() + "\n");
-                                    Log.d("", "Section: " + m.getSection() + "\n");
-                                    Log.d("", "Date: " + m.getDate() + "");
                                     Double itemPrice = m.getPrice().doubleValue();
-                                    Cursor c = eatHelper.getRestaurantIdGivenLocation(r.getName());
-                                    c.moveToFirst();
-                                    Long theID = c.getLong(c.getColumnIndex(EatContract.Restaurant._ID));
+                                    Long theID = eatHelper.getRestaurantIdGivenLocation(r.getName());
 
                                     eatHelper.insertMenuItem(m.getName(), m.getDescription(), itemPrice, m.getSection(), m.getDate(), theID);
                                 }
