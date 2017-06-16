@@ -365,28 +365,8 @@ public class MainActivity extends AppCompatActivity
                     }
                 });
     }
-    private void initialiseLocationDb(){
-        EatHelper dbHelper = new EatHelper(getApplicationContext());
-        SQLiteDatabase db = dbHelper.getReadableDatabase();
-        String[] projection = {
-                EatContract.Restaurant._ID,
-                EatContract.Restaurant.COLUMN_NAME_NAME,
-                EatContract.Restaurant.COLUMN_NAME_LATITUDE,
-                EatContract.Restaurant.COLUMN_NAME_LONGITUDE,
-        };
-        String selection = EatContract.Restaurant.COLUMN_NAME_NAME + "= ?";
-        String[] selectionArgs = {"Guildford"}; //TODO:make it return everything not just Guildford
 
-        Cursor cursor = db.query(EatContract.Restaurant.TABLE_NAME,
-                projection,
-                selection,
-                selectionArgs,
-                null,
-                null,
-                null);
-    }
     private String compareDistance(Location location) {
-        initialiseLocationDb();
 
         double distance = 0;
         boolean firstLocationDone = false;
@@ -415,9 +395,10 @@ public class MainActivity extends AppCompatActivity
         }
         locationDbCursor.close();
         if(closestLocation == null){
-            Log.d(TAG, "The closest location is null");
-            return "Guildford";
+            Log.w(TAG, "The closest location is null");
+            return "London";
         }
+        Log.w(TAG, "The closest location is NOT null");
         return closestLocation.getProvider();
     }
 
