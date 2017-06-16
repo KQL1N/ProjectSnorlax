@@ -13,12 +13,12 @@ public class Restaurant {
     private String name;
     private Double latitude;
     private Double longitude;
-    private Date openingTime;
-    private Date closingTime;
+    private String openingTime;
+    private String closingTime;
     private List<MenuItem> menuItems = new ArrayList<MenuItem>();
 
 
-    public Restaurant(Long id, String name, Double latitude, Double longitude, Date openingTime, Date closingTime) {
+    public Restaurant(Long id, String name, Double latitude, Double longitude, String openingTime, String closingTime) {
         this.id = id;
         this.name = name;
         this.latitude = latitude;
@@ -59,19 +59,19 @@ public class Restaurant {
         this.longitude = longitude;
     }
 
-    public Date getOpeningTime() {
+    public String getOpeningTime() {
         return openingTime;
     }
 
-    public void setOpeningTime(Date openingTime) {
+    public void setOpeningTime(String openingTime) {
         this.openingTime = openingTime;
     }
 
-    public Date getClosingTime() {
+    public String getClosingTime() {
         return closingTime;
     }
 
-    public void setClosingTime(Date closingTime) {
+    public void setClosingTime(String closingTime) {
         this.closingTime = closingTime;
     }
 

@@ -36,6 +36,7 @@ import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
 import android.view.MotionEvent;
@@ -45,9 +46,12 @@ import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 
+import nl.muar.sa.projectsnorlax.parser.Restaurant;
 import nl.muar.sa.projectsnorlax.util.UserPreferenceManager;
 import nl.muar.sa.projectsnorlax.R;
 import static nl.muar.sa.projectsnorlax.util.UserPreferenceManager.LAST_LOCATION;
@@ -114,14 +118,13 @@ public class MainActivity extends AppCompatActivity
         pager = (ViewPager) findViewById(R.id.pagingview);
         adapter = new Page(getSupportFragmentManager());
         pager.setAdapter(adapter);
-        PageListener listener = new PageListener();
-        pager.setOnPageChangeListener(listener);
-
     }
 
-    private class PageListener extends ViewPager.SimpleOnPageChangeListener
-    {
         public int currentPage = 0;
+
+        public StringRequest getMenuRequest(){
+            return menuRequest;
+        }
 
         public void onPageSelected(int position)
         {
@@ -130,35 +133,40 @@ public class MainActivity extends AppCompatActivity
             currentDayText.setText(days[currentPage]);
         }
 
-        View view1 = (View) findViewById(R.id.view1);
-        View view2 = (View) findViewById(R.id.view2);
-        View view3 = (View) findViewById(R.id.view3);
-        View view4 = (View) findViewById(R.id.view4);
-        View view5 = (View) findViewById(R.id.view5);
-        View view6 = (View) findViewById(R.id.view6);
-
         final List<View> viewBoxList = new ArrayList<View>();
-        viewBoxList.add(0, view1);
-        viewBoxList.add(1, view2);
-        viewBoxList.add(2, view3);
-        viewBoxList.add(3, view4);
-        viewBoxList.add(4, view5);
-        viewBoxList.add(5, view6);
 
-
-        // if network connectivity = true;
-        final RequestQueue queue = Volley.newRequestQueue(this);
         final String url = "http://sa.muar.nl/weeksmenu";
 
         StringRequest menuRequest = new StringRequest(Request.Method.GET, url,
                 new Response.Listener<String>() {
+                    boolean hasbeenUsed = false;
                     @Override
                     public void onResponse(String response) {
-                        Type listOfRestaurantsType = new TypeToken<List<Restaurant>>() {}.getType();
-                        Log.i("Menu Request", "Data received: " + response);
-                        List<Restaurant> restaurants = new Gson().fromJson(response, listOfRestaurantsType);
-                        for (Restaurant r: restaurants) {
-                            Log.d("Menu Request", r.getName());
+
+
+                        if (hasbeenUsed == false) {
+                            Type listOfRestaurantsType = new TypeToken<List<Restaurant>>() {
+                            }.getType();
+                            Log.i("Menu Request", "Data received: " + response);
+                            Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
+                            List<Restaurant> restaurants = gson.fromJson(response, listOfRestaurantsType);
+
+                            for (Restaurant r : restaurants) {
+                                Log.d("Menu Request", "\n" + r.getName());
+
+                                //a list with the all the menu items inside it for the current restaurant;
+                                List<nl.muar.sa.projectsnorlax.parser.MenuItem> MIlist = r.getMenuItems();
+
+                                for (nl.muar.sa.projectsnorlax.parser.MenuItem m : MIlist) {
+                                    Log.d("", "Name: " + m.getName() + "\n");
+                                    Log.d("", "ID: " + m.getId() + "\n");
+                                    Log.d("", "Description: " + m.getDescription() + "\n");
+                                    Log.d("", "Price: " + m.getPrice() + "\n");
+                                    Log.d("", "Section: " + m.getSection() + "\n");
+                                    Log.d("", "Date: " + m.getDate() + "");
+                                }
+                            }
+                            hasbeenUsed = true;
                         }
                     }
                 },
@@ -169,8 +177,6 @@ public class MainActivity extends AppCompatActivity
                     }
                 });
 
-        queue.add(menuRequest);
-    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu)
@@ -206,6 +212,10 @@ public class MainActivity extends AppCompatActivity
         } else {
             getLocation();
         }
+
+        RequestQueue queue = Volley.newRequestQueue(this);
+        queue.add(getMenuRequest());
+
     }
 
     @Override
