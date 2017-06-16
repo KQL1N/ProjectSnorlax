@@ -48,6 +48,11 @@ import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
+
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -122,9 +127,43 @@ public class MainActivity extends AppCompatActivity
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
         // View Pager
-        pager = (ViewPager) findViewById(R.id.pagingview);
-        adapter = new Page(getSupportFragmentManager());
-        pager.setAdapter(adapter);
+//        pager = (ViewPager) findViewById(R.id.pagingview);
+//        adapter = new Page(getSupportFragmentManager());
+//        pager.setAdapter(adapter);
+//        PageListener listener = new PageListener();
+//        pager.setOnPageChangeListener(listener);
+
+        // Boolean for whether network connection is true or false
+        boolean netConnection = isNetworkAvailable();
+        boolean localDbUpToDate = isLocalDbUpToDate();
+
+        if (localDbUpToDate) {
+            // If statement for true or false network connection
+            if (netConnection) {
+                RequestQueue queue = Volley.newRequestQueue(getApplicationContext());
+                // URL of web server
+                String url = "http://sa.muar.nl/weeksmenu";
+
+                StringRequest menuRequest = new StringRequest(Request.Method.GET, url, new Response.Listener<String>() {
+                    @Override
+                    public void onResponse(String response) {
+                        // Simon's Parsing Stuff
+                    }
+                }, new Response.ErrorListener() {
+                    // Iterating through the views making them red to show that there was an error
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        //TODO (johnjerome) add function to check local repository in event of web server request error
+                    }
+                });
+                queue.add(menuRequest);
+            } else {
+                Toast.makeText(getApplicationContext(), "No network connection detected", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getApplicationContext(), "Cannot refresh menu while offline", Toast.LENGTH_LONG).show();
+                //TODO (johnjerome) add function for checking the local repository for recent data
+            }
+        }
+
     }
 
         public int currentPage = 0;
@@ -173,9 +212,8 @@ public class MainActivity extends AppCompatActivity
                                     Log.d("", "Section: " + m.getSection() + "\n");
                                     Log.d("", "Date: " + m.getDate() + "");
                                     Double itemPrice = m.getPrice().doubleValue();
-                                    Cursor c = eatHelper.getRestaurantIdGivenLocation(r.getName());
-                                    c.moveToFirst();
-                                    Long theID = c.getLong(c.getColumnIndex(EatContract.Restaurant._ID));
+
+                                    Long theID = eatHelper.getRestaurantIdGivenLocation(r.getName());
 
                                     eatHelper.insertMenuItem(m.getName(), m.getDescription(), itemPrice, m.getSection(), m.getDate(), theID);
                                 }
@@ -543,6 +581,20 @@ public class MainActivity extends AppCompatActivity
             default :
                 return super.onTouchEvent(event);
         }
+    }
+
+    private boolean isLocalDbUpToDate() {
+        EatHelper eatHelper = new EatHelper(getApplicationContext());
+
+        Cursor menuItems = eatHelper.getAllMenuItems();
+
+        int menuItemDates = menuItems.getInt(menuItems.getColumnIndex(EatContract.MenuItem.COLUMN_NAME_DATE));
+        int currentDate = Calendar.DAY_OF_MONTH;
+
+        System.out.print(menuItemDates);
+        System.out.print(currentDate);
+
+        return false;
     }
 
     // Method to check for a network connection
