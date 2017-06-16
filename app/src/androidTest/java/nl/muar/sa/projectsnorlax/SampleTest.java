@@ -240,12 +240,10 @@ public class SampleTest {
     @Test
     public void getRestaurantIdGivenName(){
         eatHelper.clearDB();
-        long guildfordRestaurantId =  eatHelper.insertRestaurant(restaurantName, longitude, latitude, openingTime, closingTime);
+        Long guildfordRestaurantId =  eatHelper.insertRestaurant(restaurantName, longitude, latitude, openingTime, closingTime);
 
-        Cursor cursor = eatHelper.getRestaurantIdGivenLocation(restaurantName);
-        assertEquals(1, cursor.getCount());
-        cursor.moveToFirst();
-        assertEquals(guildfordRestaurantId, cursor.getLong(cursor.getColumnIndex(EatContract.Restaurant._ID)));
+        Long restaurantId = eatHelper.getRestaurantIdGivenLocation(restaurantName);
+        assertEquals(restaurantId, guildfordRestaurantId);
     }
 
     @Test
@@ -258,10 +256,8 @@ public class SampleTest {
         long newMenuItem = eatHelper.insertMenuItem(menuItemName, description, price, section, date, guildfordRestaurantId);
         assertEquals(1, newMenuItem);
 
-        Cursor cursor = eatHelper.getMenuItemIdGivenDescription(description);
-        cursor.moveToFirst();
-
-        assertEquals(newMenuItem, cursor.getLong(cursor.getColumnIndex(EatContract.MenuItem._ID)));
+        Long restaurantId = eatHelper.getMenuItemIdGivenDescription(description);
+        assertEquals(newMenuItem, 1);
 
     }
 }

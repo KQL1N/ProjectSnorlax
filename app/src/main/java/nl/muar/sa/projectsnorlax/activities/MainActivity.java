@@ -41,10 +41,6 @@ import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
-
 import android.view.MotionEvent;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -52,8 +48,6 @@ import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
-
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -120,7 +114,9 @@ public class MainActivity extends AppCompatActivity
         currentLocationText = (TextView) findViewById(R.id.currentrestauranttext);
         closingTimeText = (TextView) findViewById(R.id.closingtimetext);
         currentDayText = (TextView) findViewById(R.id.currentdaytext);
+
         loadCorrectLocation();
+
         currentLocationText.setText(currentLocation);
         days = getDates();
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
@@ -392,7 +388,9 @@ public class MainActivity extends AppCompatActivity
                         Log.w(TAG, log);
                         if (task.isSuccessful() && task.getResult() != null) {
                             lastLocation = task.getResult();
-                            compareDistance(lastLocation);
+
+                            currentLocation = compareDistance(lastLocation);
+                            saveLastLocation(currentLocation);
 
                         } else {
                             Log.w(TAG, "getLastLocation:exception "+ task.getException());
@@ -426,6 +424,7 @@ public class MainActivity extends AppCompatActivity
         double distance = 0;
         boolean firstLocationDone = false;
         Location closestLocation = null;
+        locationDbCursor = new EatHelper((getApplicationContext())).getAllRestaurants();
         while(locationDbCursor.moveToNext()) {
             if(firstLocationDone==false){
                 closestLocation = new Location(locationDbCursor.getString(locationDbCursor.getColumnIndex(EatContract.Restaurant.COLUMN_NAME_NAME)));
@@ -448,11 +447,14 @@ public class MainActivity extends AppCompatActivity
 
         }
         locationDbCursor.close();
+        if(closestLocation == null){
+            Log.d(TAG, "The closest location is null");
+            return "Guildford";
+        }
         return closestLocation.getProvider();
     }
 
-
-    public void printStuff()
+    private void printStuff()
     {
         Log.d(TAG, "==========MENU BUTTON PRESS==========");
         Log.d(TAG, "Saved Preference Mode: " + loadPreferenceMode());
@@ -462,7 +464,12 @@ public class MainActivity extends AppCompatActivity
         Log.d(TAG, "=====================================");
     }
 
-    public String loadCorrectLocation()
+    private void loadRestaurants(Cursor curse)
+    {
+
+    }
+
+    private String loadCorrectLocation()
     {
         String output = "";
 
@@ -481,14 +488,9 @@ public class MainActivity extends AppCompatActivity
                 break;
 
             case GPS_MODE:
-                // Get Trev's GPS thing result
-                // Set the current location to that location
-                // Set the last location to that location
-                // TODO: USE TREV'S METHOD
-                String GPSlocation = "";
-                currentLocation = GPSlocation;
-                saveLastLocation(GPSlocation);
-
+                // Gete the nearest location
+                // Save it to the preferences
+                getLocation();
                 break;
 
             case LAST_MODE:
@@ -501,41 +503,40 @@ public class MainActivity extends AppCompatActivity
                 savePreferredLocation(LAST_MODE);
                 break;
         }
-
         return output;
     }
 
-    public void savePreferenceMode(String mode)
+    private void savePreferenceMode(String mode)
     {
         UserPreferenceManager.saveValue(this, PREFERENCE_MODE, mode);
     }
 
-    public String loadPreferenceMode()
+    private String loadPreferenceMode()
     {
         return UserPreferenceManager.loadValue(this, PREFERENCE_MODE);
     }
 
-    public void savePreferredLocation(String preferredLocation)
+    private void savePreferredLocation(String preferredLocation)
     {
         UserPreferenceManager.saveValue(this, PREFERRED_LOCATION, preferredLocation);
     }
 
-    public String loadPreferredLocation()
+    private String loadPreferredLocation()
     {
         return UserPreferenceManager.loadValue(this, PREFERRED_LOCATION);
     }
 
-    public void saveLastLocation(String lastLocation)
+    private void saveLastLocation(String lastLocation)
     {
         UserPreferenceManager.saveValue(this, LAST_LOCATION, lastLocation);
     }
 
-    public String loadLastLocation()
+    private String loadLastLocation()
     {
         return UserPreferenceManager.loadValue(this, LAST_LOCATION);
     }
 
-    public String[] getDates()
+    private String[] getDates()
     {
         // TODO: REPLACE WITH DATABASE DATES
         return new String[]{"Monday 1st", "Tuesday 2nd", "Wednesday 3rd", "Thursday 4th", "Friday 5th"};
