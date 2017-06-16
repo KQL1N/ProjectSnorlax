@@ -1,70 +1,38 @@
 package nl.muar.sa.projectsnorlax.activities;
 
 import android.Manifest;
-import android.content.Context;
 import android.content.pm.PackageManager;
-import android.database.CursorWrapper;
 import android.database.sqlite.SQLiteDatabase;
 import android.location.Location;
 import android.database.Cursor;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
-import android.support.v4.view.MotionEventCompat;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.os.CountDownTimer;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
-import android.view.View;
-import android.widget.Toast;
-
-import com.android.volley.Request;
-import com.android.volley.RequestQueue;
-import com.android.volley.Response;
-import com.android.volley.VolleyError;
-import com.android.volley.toolbox.StringRequest;
-import com.android.volley.toolbox.Volley;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
-import android.view.MotionEvent;
 import android.widget.TextView;
-import android.widget.Toast;
-import com.google.android.gms.location.FusedLocationProviderClient;
-import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.Task;
-import java.util.ArrayList;
-import java.util.List;
-
 import nl.muar.sa.projectsnorlax.db.EatContract;
 import nl.muar.sa.projectsnorlax.db.EatHelper;
 import nl.muar.sa.projectsnorlax.util.UserPreferenceManager;
 import static nl.muar.sa.projectsnorlax.util.UserPreferenceManager.LAST_LOCATION;
 import static nl.muar.sa.projectsnorlax.util.UserPreferenceManager.PREFERENCE_MODE;
 import static nl.muar.sa.projectsnorlax.util.UserPreferenceManager.PREFERRED_LOCATION;
-import android.view.View;
-import android.widget.TextView;
-
 import java.text.DateFormat;
-import java.text.FieldPosition;
 import java.text.ParseException;
-import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
-
 import nl.muar.sa.projectsnorlax.R;
 
 public class MainActivity extends AppCompatActivity
@@ -78,17 +46,14 @@ public class MainActivity extends AppCompatActivity
     public static final String SPECIFIED_MODE = "nl.muar.sa.projectsnorlax.specifiedmode";  // The user wants to default to a specific location from the list
     public static final String LONDON = "London Blue Fin";
     public static final String GUILDFORD = "Guildford Canteen";
-    public String currentLocation;
-    public TextView currentLocationText;
-    public TextView currentDayText;
-    public TextView closingTimeText;
-    public String[] days;
+    private String currentLocation;
+    private TextView currentLocationText;
+    private TextView currentDayText;
+    private TextView closingTimeText;
+    private String[] days;
     private FusedLocationProviderClient mFusedLocationClient;
-    private String latitudeLabel;
-    private String longitudeLabel;
     private Location lastLocation;
     private int MY_PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION;
-
     private static int PAGE_NUM = 5;
     private ViewPager pager;
     private PagerAdapter adapter;
@@ -106,7 +71,9 @@ public class MainActivity extends AppCompatActivity
         currentLocationText = (TextView) findViewById(R.id.currentrestauranttext);
         closingTimeText = (TextView) findViewById(R.id.closingtimetext);
         currentDayText = (TextView) findViewById(R.id.currentdaytext);
+
         loadCorrectLocation();
+
         currentLocationText.setText(currentLocation);
         days = getDates();
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
@@ -324,7 +291,9 @@ public class MainActivity extends AppCompatActivity
                         Log.w(TAG, log);
                         if (task.isSuccessful() && task.getResult() != null) {
                             lastLocation = task.getResult();
-                            compareDistance(lastLocation);
+
+                            currentLocation = compareDistance(lastLocation);
+                            saveLastLocation(currentLocation);
 
                         } else {
                             Log.w(TAG, "getLastLocation:exception "+ task.getException());
@@ -383,8 +352,7 @@ public class MainActivity extends AppCompatActivity
         return closestLocation.getProvider();
     }
 
-
-    public void printStuff()
+    private void printStuff()
     {
         Log.d(TAG, "==========MENU BUTTON PRESS==========");
         Log.d(TAG, "Saved Preference Mode: " + loadPreferenceMode());
@@ -394,7 +362,12 @@ public class MainActivity extends AppCompatActivity
         Log.d(TAG, "=====================================");
     }
 
-    public String loadCorrectLocation()
+    private void loadRestaurants(Cursor curse)
+    {
+
+    }
+
+    private String loadCorrectLocation()
     {
         String output = "";
 
@@ -413,14 +386,9 @@ public class MainActivity extends AppCompatActivity
                 break;
 
             case GPS_MODE:
-                // Get Trev's GPS thing result
-                // Set the current location to that location
-                // Set the last location to that location
-                // TODO: USE TREV'S METHOD
-                String GPSlocation = "";
-                currentLocation = GPSlocation;
-                saveLastLocation(GPSlocation);
-
+                // Gete the nearest location
+                // Save it to the preferences
+                getLocation();
                 break;
 
             case LAST_MODE:
@@ -433,41 +401,40 @@ public class MainActivity extends AppCompatActivity
                 savePreferredLocation(LAST_MODE);
                 break;
         }
-
         return output;
     }
 
-    public void savePreferenceMode(String mode)
+    private void savePreferenceMode(String mode)
     {
         UserPreferenceManager.saveValue(this, PREFERENCE_MODE, mode);
     }
 
-    public String loadPreferenceMode()
+    private String loadPreferenceMode()
     {
         return UserPreferenceManager.loadValue(this, PREFERENCE_MODE);
     }
 
-    public void savePreferredLocation(String preferredLocation)
+    private void savePreferredLocation(String preferredLocation)
     {
         UserPreferenceManager.saveValue(this, PREFERRED_LOCATION, preferredLocation);
     }
 
-    public String loadPreferredLocation()
+    private String loadPreferredLocation()
     {
         return UserPreferenceManager.loadValue(this, PREFERRED_LOCATION);
     }
 
-    public void saveLastLocation(String lastLocation)
+    private void saveLastLocation(String lastLocation)
     {
         UserPreferenceManager.saveValue(this, LAST_LOCATION, lastLocation);
     }
 
-    public String loadLastLocation()
+    private String loadLastLocation()
     {
         return UserPreferenceManager.loadValue(this, LAST_LOCATION);
     }
 
-    public String[] getDates()
+    private String[] getDates()
     {
         // TODO: REPLACE WITH DATABASE DATES
         return new String[]{"Monday 1st", "Tuesday 2nd", "Wednesday 3rd", "Thursday 4th", "Friday 5th"};
