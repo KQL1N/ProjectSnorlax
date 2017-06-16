@@ -23,7 +23,7 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 
 import nl.muar.sa.projectsnorlax.util.UserPreferenceManager;
-import sa.muar.nl.projectsnorlax.R;
+import nl.muar.sa.projectsnorlax.R;
 
 import static nl.muar.sa.projectsnorlax.util.UserPreferenceManager.LAST_LOCATION;
 import static nl.muar.sa.projectsnorlax.util.UserPreferenceManager.PREFERENCE_MODE;
