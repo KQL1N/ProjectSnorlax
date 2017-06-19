@@ -27,6 +27,7 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ListView;
 import android.widget.Toast;
 
 import com.android.volley.Request;
@@ -46,12 +47,18 @@ import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
+
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 
 import nl.muar.sa.projectsnorlax.db.EatContract;
 import nl.muar.sa.projectsnorlax.db.EatHelper;
 import nl.muar.sa.projectsnorlax.parser.Restaurant;
+import nl.muar.sa.projectsnorlax.providers.MenuItemCursorAdapter;
 import nl.muar.sa.projectsnorlax.util.UserPreferenceManager;
 import nl.muar.sa.projectsnorlax.R;
 import static nl.muar.sa.projectsnorlax.util.UserPreferenceManager.LAST_LOCATION;
@@ -123,82 +130,113 @@ public class MainActivity extends AppCompatActivity
         currentLocationText.setText(currentLocation);
         days = getDates();
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
-        
-        final List<View> viewBoxList = new ArrayList<View>();
-
-        final String url = "http://sa.muar.nl/weeksmenu";
-
-        StringRequest menuRequest = new StringRequest(Request.Method.GET, url,
-                new Response.Listener<String>() {
-                    boolean hasbeenUsed = false;
-                    @Override
-                    public void onResponse(String response) {
-                        if (hasbeenUsed == false) {
-                            Type listOfRestaurantsType = new TypeToken<List<Restaurant>>() {
-                            }.getType();
-                            Log.i("Menu Request", "Data received: " + response);
-                            Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
-                            List<Restaurant> restaurants = gson.fromJson(response, listOfRestaurantsType);
-
-                            for (Restaurant r : restaurants) {
-                                Log.d("Menu Request", "\n" + r.getName());
-                                eatHelper.insertRestaurant(r.getName(), r.getLongitude(), r.getLatitude(), r.getOpeningTime(), r.getClosingTime());
-
-                                //a list with the all the menu items inside it for the current restaurant;
-                                List<nl.muar.sa.projectsnorlax.parser.MenuItem> MIlist = r.getMenuItems();
-
-                                for (nl.muar.sa.projectsnorlax.parser.MenuItem m : MIlist) {
-                                    Log.d("", "Name: " + m.getName() + "\n");
-                                    Log.d("", "ID: " + m.getId() + "\n");
-                                    Log.d("", "Description: " + m.getDescription() + "\n");
-                                    Log.d("", "Price: " + m.getPrice() + "\n");
-                                    Log.d("", "Section: " + m.getSection() + "\n");
-                                    Log.d("", "Date: " + m.getDate() + "");
-                                    Double itemPrice = m.getPrice().doubleValue();
-                                    Cursor c = eatHelper.getRestaurantIdGivenLocation(r.getName());
-                                    c.moveToFirst();
-                                    Long theID = c.getLong(c.getColumnIndex(EatContract.Restaurant._ID));
-
-                                    eatHelper.insertMenuItem(m.getName(), m.getDescription(), itemPrice, m.getSection(), m.getDate(), theID);
-                                }
-                            }
-                            hasbeenUsed = true;
-                        }
-                    }
-                },
-                new Response.ErrorListener() {
-                    @Override
-                    public void onErrorResponse(VolleyError error) {
-                        Log.e("Menu Request", "Unable to get restaurant data from server: " + error.getMessage());
-                    }
-                });
 
         // View Pager
-        pager = (ViewPager) findViewById(R.id.pagingview);
-        adapter = new Page(getSupportFragmentManager());
-        pager.setAdapter(adapter);
-        pager.setOffscreenPageLimit(5);
-        PageListener listener = new PageListener();
-        pager.setOnPageChangeListener(listener);
-        eatHelper = new EatHelper(this);
+//        pager = (ViewPager) findViewById(R.id.pagingview);
+//        adapter = new Page(getSupportFragmentManager());
+//        pager.setAdapter(adapter);
+//        PageListener listener = new PageListener();
+//        pager.setOnPageChangeListener(listener);
+
+    }
+
+//        public int currentPage = 0;
+//
+//        public void onPageSelected(int position)
+//        {
+//            Log.i(TAG, "page selected " + position);
+//            currentPage= position;
+//            currentDayText.setText(days[currentPage]);
+//        }
+
+    public void getMenuRequest() {
+        boolean netConnection = isNetworkAvailable();
+        boolean localDbUpToDate = isLocalDbUpToDate();
+
+        if (localDbUpToDate) {
+            if (netConnection) {
+                RequestQueue queue = Volley.newRequestQueue(getApplicationContext());
+                final String url = "http://sa.muar.nl/weeksmenu";
+
+                StringRequest menuRequest = new StringRequest(Request.Method.GET, url,
+                        new Response.Listener<String>() {
+                            boolean hasBeenUsed = false;
+
+                            @Override
+                            public void onResponse(String response) {
+
+
+                                if (!hasBeenUsed) {
+                                    Type listOfRestaurantsType = new TypeToken<List<Restaurant>>() {
+                                    }.getType();
+                                    Log.i("Menu Request", "Data received: " + response);
+                                    Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
+                                    List<Restaurant> restaurants = gson.fromJson(response, listOfRestaurantsType);
+
+                                    for (Restaurant r : restaurants) {
+                                        Log.d("Menu Request", "\n" + r.getName());
+                                        eatHelper.insertRestaurant(r.getName(), r.getLongitude(), r.getLatitude(), r.getOpeningTime(), r.getClosingTime());
+
+                                        //a list with the all the menu items inside it for the current restaurant;
+                                        List<nl.muar.sa.projectsnorlax.parser.MenuItem> MIlist = r.getMenuItems();
+
+                                        for (nl.muar.sa.projectsnorlax.parser.MenuItem m : MIlist) {
+                                            Log.d("", "Name: " + m.getName() + "\n");
+                                            Log.d("", "ID: " + m.getId() + "\n");
+                                            Log.d("", "Description: " + m.getDescription() + "\n");
+                                            Log.d("", "Price: " + m.getPrice() + "\n");
+                                            Log.d("", "Section: " + m.getSection() + "\n");
+                                            Log.d("", "Date: " + m.getDate() + "");
+                                            Double itemPrice = m.getPrice().doubleValue();
+
+                                            Long theID = eatHelper.getRestaurantIdGivenLocation(r.getName());
+
+                                            eatHelper.insertMenuItem(m.getName(), m.getDescription(), itemPrice, m.getSection(), m.getDate(), theID);
+                                        }
+                                    }
+                                    hasBeenUsed = true;
+                                }
+                            }
+                        },
+                        new Response.ErrorListener() {
+                            @Override
+                            public void onErrorResponse(VolleyError error) {
+                                Log.e("Menu Request", "Unable to get restaurant data from server: " + error.getMessage());
+                            }
+                        });
+
+                queue.add(menuRequest);
+
+            } else {
+                Toast.makeText(getApplicationContext(), "No network connection detected", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getApplicationContext(), "Cannot refresh menu while offline", Toast.LENGTH_LONG).show();
+                // TODO (johnjerome) add function for checking the local repository for recent data
+            }
+
+        }
+
+        // View Pager
+//        pager = (ViewPager) findViewById(R.id.pagingview);
+//        adapter = new Page(getSupportFragmentManager());
+//        pager.setAdapter(adapter);
+//        pager.setOffscreenPageLimit(5);
+//        PageListener listener = new PageListener();
+//        pager.setOnPageChangeListener(listener);
+//        eatHelper = new EatHelper(this);
     }
     
-    private class PageListener extends ViewPager.SimpleOnPageChangeListener
-    {
-        public int currentPage = 0;
-
-        public StringRequest getMenuRequest(){
-            return menuRequest;
-        }
-
-        public void onPageSelected(int position)
-        {
-            Log.i(TAG, "page selected " + position);
-            currentPage= position;
-            currentDayText.setText(days[currentPage]);
-            fillListWithMenuItems(position);
-        }
-    }
+//    private class PageListener extends ViewPager.SimpleOnPageChangeListener
+//    {
+//        public int currentPage = 0;
+//
+//        public void onPageSelected(int position)
+//        {
+//            Log.i(TAG, "page selected " + position);
+//            currentPage= position;
+//            currentDayText.setText(days[currentPage]);
+//            fillListWithMenuItems(position);
+//        }
+//    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu)
@@ -235,8 +273,7 @@ public class MainActivity extends AppCompatActivity
             getLocation();
         }
 
-        RequestQueue queue = Volley.newRequestQueue(this);
-        queue.add(getMenuRequest());
+        getMenuRequest();
 
     }
 
@@ -346,35 +383,35 @@ public class MainActivity extends AppCompatActivity
         }
     }
 
-    public void fillListWithMenuItems(int position){
-        List<Calendar> weekRange= calculateDateRange(new Date());
+//    public void fillListWithMenuItems(int position){
+//        List<Calendar> weekRange= calculateDateRange(new Date());
+//
+//        Date dayStart = weekRange.get(0).getTime();
+//        weekRange.get(0).add(Calendar.DAY_OF_WEEK, position);
+//        Date dayEnd = weekRange.get(0).getTime();
+//        Cursor cursor = eatHelper.getMenuItemGivenDateAndLocation(currentId, dayStart, dayEnd);
+//        cursor.moveToFirst();
+//        MenuItemCursorAdapter menuAdapter = new MenuItemCursorAdapter(this, cursor);
+//        Log.i(TAG, cursor.getString(cursor.getColumnIndexOrThrow(EatContract.MenuItem.COLUMN_NAME_NAME)));
+//        ListView dayView = (ListView)pager.getChildAt(position).findViewById(R.id.menu_item_list);
+//        dayView.setAdapter(menuAdapter);
+//    }
 
-        Date dayStart = weekRange.get(0).getTime();
-        weekRange.get(0).add(Calendar.DAY_OF_WEEK, position);
-        Date dayEnd = weekRange.get(0).getTime();
-        Cursor cursor = eatHelper.getMenuItemGivenDateAndLocation(currentId, dayStart, dayEnd);
-        cursor.moveToFirst();
-        MenuItemCursorAdapter menuAdapter = new MenuItemCursorAdapter(this, cursor);
-        Log.i(TAG, cursor.getString(cursor.getColumnIndexOrThrow(EatContract.MenuItem.COLUMN_NAME_NAME)));
-        ListView dayView = (ListView)pager.getChildAt(position).findViewById(R.id.menu_item_list);
-        dayView.setAdapter(menuAdapter);
-    }
-
-    public List<Calendar> calculateDateRange(Date currentDate){
-        List<Calendar> weekRange = new ArrayList<Calendar>();
-        Calendar cStart = Calendar.getInstance();
-        cStart.setFirstDayOfWeek(Calendar.MONDAY);
-        cStart.setTime(currentDate);
-        int today = cStart.get(Calendar.DAY_OF_WEEK);
-        cStart.add(Calendar.DAY_OF_WEEK, - today + Calendar.MONDAY);
-        cStart.set(Calendar.YEAR, Calendar.MONTH, Calendar.DATE, 0, 0, 0);
-        weekRange.add(cStart);
-        Log.i(TAG, "Week begins: " + cStart.getTime());
-        cStart.add(Calendar.DAY_OF_WEEK, - today + Calendar.FRIDAY);
-        Log.i(TAG, "Week ends: " + cStart.getTime());
-        weekRange.add(cStart);
-        return weekRange;
-    }
+//    public List<Calendar> calculateDateRange(Date currentDate){
+//        List<Calendar> weekRange = new ArrayList<Calendar>();
+//        Calendar cStart = Calendar.getInstance();
+//        cStart.setFirstDayOfWeek(Calendar.MONDAY);
+//        cStart.setTime(currentDate);
+//        int today = cStart.get(Calendar.DAY_OF_WEEK);
+//        cStart.add(Calendar.DAY_OF_WEEK, - today + Calendar.MONDAY);
+//        cStart.set(Calendar.YEAR, Calendar.MONTH, Calendar.DATE, 0, 0, 0);
+//        weekRange.add(cStart);
+//        Log.i(TAG, "Week begins: " + cStart.getTime());
+//        cStart.add(Calendar.DAY_OF_WEEK, - today + Calendar.FRIDAY);
+//        Log.i(TAG, "Week ends: " + cStart.getTime());
+//        weekRange.add(cStart);
+//        return weekRange;
+//    }
 
     public void startOpenChecker(){
         cdt = new CountDownTimer(120_000, 30_000){
@@ -417,7 +454,7 @@ public class MainActivity extends AppCompatActivity
                     @Override
                     public void onComplete(Task<Location> task) {
                         String log="the task is not succesful";
-                        if(task.isSuccessful()==true){
+                        if(task.isSuccessful()){
                             log = "The task is successful";
                         }
                         Log.w(TAG, log);
@@ -441,7 +478,7 @@ public class MainActivity extends AppCompatActivity
         Location closestLocation = null;
         locationDbCursor = new EatHelper((getApplicationContext())).getAllRestaurants();
         while(locationDbCursor.moveToNext()) {
-            if(firstLocationDone==false){
+            if(!firstLocationDone){
                 closestLocation = new Location(locationDbCursor.getString(locationDbCursor.getColumnIndex(EatContract.Restaurant.COLUMN_NAME_NAME)));
                 closestLocation.setLatitude(locationDbCursor.getFloat(locationDbCursor.getColumnIndex(EatContract.Restaurant.COLUMN_NAME_LATITUDE)));
                 closestLocation.setLatitude(locationDbCursor.getFloat(locationDbCursor.getColumnIndex(EatContract.Restaurant.COLUMN_NAME_LONGITUDE)));
@@ -480,10 +517,10 @@ public class MainActivity extends AppCompatActivity
         Log.d(TAG, "=====================================");
     }
 
-    private void loadRestaurants(Cursor curse)
-    {
-
-    }
+//    private void loadRestaurants(Cursor curse)
+//    {
+//
+//    }
 
     private String loadCorrectLocation()
     {
@@ -578,6 +615,20 @@ public class MainActivity extends AppCompatActivity
             default :
                 return super.onTouchEvent(event);
         }
+    }
+
+    private boolean isLocalDbUpToDate() {
+        // EatHelper eatHelper = new EatHelper(getApplicationContext());
+
+        // Cursor menuItems = eatHelper.getAllMenuItems();
+
+        String menuItemDates = EatContract.MenuItem.COLUMN_NAME_DATE;
+        int currentDate = Calendar.DAY_OF_MONTH;
+
+        System.out.print(menuItemDates);
+        System.out.print(currentDate);
+
+        return false;
     }
 
     // Method to check for a network connection
