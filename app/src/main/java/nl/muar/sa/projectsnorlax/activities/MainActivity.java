@@ -133,111 +133,83 @@ public class MainActivity extends AppCompatActivity
 //        PageListener listener = new PageListener();
 //        pager.setOnPageChangeListener(listener);
 
-        // Boolean for whether network connection is true or false
-//        boolean netConnection = isNetworkAvailable();
-//        boolean localDbUpToDate = isLocalDbUpToDate();
-//
-//        if (localDbUpToDate) {
-//            // If statement for true or false network connection
-//            if (netConnection) {
-//                RequestQueue queue = Volley.newRequestQueue(getApplicationContext());
-//                // URL of web server
-//                String url = "http://sa.muar.nl/weeksmenu";
-//
-//                StringRequest menuRequest = new StringRequest(Request.Method.GET, url, new Response.Listener<String>() {
-//                    @Override
-//                    public void onResponse(String response) {
-//                        // Simon's Parsing Stuff
-//                    }
-//                }, new Response.ErrorListener() {
-//                    // Iterating through the views making them red to show that there was an error
-//                    @Override
-//                    public void onErrorResponse(VolleyError error) {
-//                        //TODO (johnjerome) add function to check local repository in event of web server request error
-//                    }
-//                });
-//                queue.add(menuRequest);
-//            } else {
-//                Toast.makeText(getApplicationContext(), "No network connection detected", Toast.LENGTH_SHORT).show();
-//                Toast.makeText(getApplicationContext(), "Cannot refresh menu while offline", Toast.LENGTH_LONG).show();
-//                //TODO (johnjerome) add function for checking the local repository for recent data
-//            }
-//        }
-
     }
 
-        public int currentPage = 0;
+//        public int currentPage = 0;
+//
+//        public void onPageSelected(int position)
+//        {
+//            Log.i(TAG, "page selected " + position);
+//            currentPage= position;
+//            currentDayText.setText(days[currentPage]);
+//        }
 
-        public void onPageSelected(int position)
-        {
-            Log.i(TAG, "page selected " + position);
-            currentPage= position;
-            currentDayText.setText(days[currentPage]);
-        }
+    public void getMenuRequest() {
+        boolean netConnection = isNetworkAvailable();
+        boolean localDbUpToDate = isLocalDbUpToDate();
 
-        final List<View> viewBoxList = new ArrayList<View>();
+        if (localDbUpToDate) {
+            if (netConnection) {
+                RequestQueue queue = Volley.newRequestQueue(getApplicationContext());
+                final String url = "http://sa.muar.nl/weeksmenu";
 
-        final String url = "http://sa.muar.nl/weeksmenu";
+                StringRequest menuRequest = new StringRequest(Request.Method.GET, url,
+                        new Response.Listener<String>() {
+                            boolean hasBeenUsed = false;
 
-    boolean netConnection = isNetworkAvailable();
-    boolean localDbUpToDate = isLocalDbUpToDate();
-    public StringRequest getMenuRequest() {
-        StringRequest menuRequest;
-
-        if (netConnection) {
-            menuRequest = new StringRequest(Request.Method.GET, url,
-                    new Response.Listener<String>() {
-                        boolean hasbeenUsed = false;
-
-                        @Override
-                        public void onResponse(String response) {
+                            @Override
+                            public void onResponse(String response) {
 
 
-                            if (hasbeenUsed == false) {
-                                Type listOfRestaurantsType = new TypeToken<List<Restaurant>>() {
-                                }.getType();
-                                Log.i("Menu Request", "Data received: " + response);
-                                Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
-                                List<Restaurant> restaurants = gson.fromJson(response, listOfRestaurantsType);
+                                if (!hasBeenUsed) {
+                                    Type listOfRestaurantsType = new TypeToken<List<Restaurant>>() {
+                                    }.getType();
+                                    Log.i("Menu Request", "Data received: " + response);
+                                    Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
+                                    List<Restaurant> restaurants = gson.fromJson(response, listOfRestaurantsType);
 
-                                for (Restaurant r : restaurants) {
-                                    Log.d("Menu Request", "\n" + r.getName());
-                                    eatHelper.insertRestaurant(r.getName(), r.getLongitude(), r.getLatitude(), r.getOpeningTime(), r.getClosingTime());
+                                    for (Restaurant r : restaurants) {
+                                        Log.d("Menu Request", "\n" + r.getName());
+                                        eatHelper.insertRestaurant(r.getName(), r.getLongitude(), r.getLatitude(), r.getOpeningTime(), r.getClosingTime());
 
-                                    //a list with the all the menu items inside it for the current restaurant;
-                                    List<nl.muar.sa.projectsnorlax.parser.MenuItem> MIlist = r.getMenuItems();
+                                        //a list with the all the menu items inside it for the current restaurant;
+                                        List<nl.muar.sa.projectsnorlax.parser.MenuItem> MIlist = r.getMenuItems();
 
-                                    for (nl.muar.sa.projectsnorlax.parser.MenuItem m : MIlist) {
-                                        Log.d("", "Name: " + m.getName() + "\n");
-                                        Log.d("", "ID: " + m.getId() + "\n");
-                                        Log.d("", "Description: " + m.getDescription() + "\n");
-                                        Log.d("", "Price: " + m.getPrice() + "\n");
-                                        Log.d("", "Section: " + m.getSection() + "\n");
-                                        Log.d("", "Date: " + m.getDate() + "");
-                                        Double itemPrice = m.getPrice().doubleValue();
+                                        for (nl.muar.sa.projectsnorlax.parser.MenuItem m : MIlist) {
+                                            Log.d("", "Name: " + m.getName() + "\n");
+                                            Log.d("", "ID: " + m.getId() + "\n");
+                                            Log.d("", "Description: " + m.getDescription() + "\n");
+                                            Log.d("", "Price: " + m.getPrice() + "\n");
+                                            Log.d("", "Section: " + m.getSection() + "\n");
+                                            Log.d("", "Date: " + m.getDate() + "");
+                                            Double itemPrice = m.getPrice().doubleValue();
 
-                                        Long theID = eatHelper.getRestaurantIdGivenLocation(r.getName());
+                                            Long theID = eatHelper.getRestaurantIdGivenLocation(r.getName());
 
-                                        eatHelper.insertMenuItem(m.getName(), m.getDescription(), itemPrice, m.getSection(), m.getDate(), theID);
+                                            eatHelper.insertMenuItem(m.getName(), m.getDescription(), itemPrice, m.getSection(), m.getDate(), theID);
+                                        }
                                     }
+                                    hasBeenUsed = true;
                                 }
-                                hasbeenUsed = true;
                             }
-                        }
-                    },
-                    new Response.ErrorListener() {
-                        @Override
-                        public void onErrorResponse(VolleyError error) {
-                            Log.e("Menu Request", "Unable to get restaurant data from server: " + error.getMessage());
-                        }
-                    });
-        } else {
-            Toast.makeText(getApplicationContext(), "No network connection detected", Toast.LENGTH_SHORT).show();
-            Toast.makeText(getApplicationContext(), "Cannot refresh menu while offline", Toast.LENGTH_LONG).show();
-            // TODO (johnjerome) add function for checking the local repository for recent data
+                        },
+                        new Response.ErrorListener() {
+                            @Override
+                            public void onErrorResponse(VolleyError error) {
+                                Log.e("Menu Request", "Unable to get restaurant data from server: " + error.getMessage());
+                            }
+                        });
+
+                queue.add(menuRequest);
+
+            } else {
+                Toast.makeText(getApplicationContext(), "No network connection detected", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getApplicationContext(), "Cannot refresh menu while offline", Toast.LENGTH_LONG).show();
+                // TODO (johnjerome) add function for checking the local repository for recent data
+            }
+
         }
 
-        return menuRequest;
     }
 
 
@@ -276,8 +248,7 @@ public class MainActivity extends AppCompatActivity
             getLocation();
         }
 
-        RequestQueue queue = Volley.newRequestQueue(this);
-        queue.add(getMenuRequest());
+        getMenuRequest();
 
     }
 
@@ -431,7 +402,7 @@ public class MainActivity extends AppCompatActivity
                     @Override
                     public void onComplete(Task<Location> task) {
                         String log="the task is not succesful";
-                        if(task.isSuccessful()==true){
+                        if(task.isSuccessful()){
                             log = "The task is successful";
                         }
                         Log.w(TAG, log);
@@ -455,7 +426,7 @@ public class MainActivity extends AppCompatActivity
         Location closestLocation = null;
         locationDbCursor = new EatHelper((getApplicationContext())).getAllRestaurants();
         while(locationDbCursor.moveToNext()) {
-            if(firstLocationDone==false){
+            if(!firstLocationDone){
                 closestLocation = new Location(locationDbCursor.getString(locationDbCursor.getColumnIndex(EatContract.Restaurant.COLUMN_NAME_NAME)));
                 closestLocation.setLatitude(locationDbCursor.getFloat(locationDbCursor.getColumnIndex(EatContract.Restaurant.COLUMN_NAME_LATITUDE)));
                 closestLocation.setLatitude(locationDbCursor.getFloat(locationDbCursor.getColumnIndex(EatContract.Restaurant.COLUMN_NAME_LONGITUDE)));
@@ -494,10 +465,10 @@ public class MainActivity extends AppCompatActivity
         Log.d(TAG, "=====================================");
     }
 
-    private void loadRestaurants(Cursor curse)
-    {
-
-    }
+//    private void loadRestaurants(Cursor curse)
+//    {
+//
+//    }
 
     private String loadCorrectLocation()
     {
@@ -595,9 +566,9 @@ public class MainActivity extends AppCompatActivity
     }
 
     private boolean isLocalDbUpToDate() {
-        EatHelper eatHelper = new EatHelper(getApplicationContext());
+        // EatHelper eatHelper = new EatHelper(getApplicationContext());
 
-        Cursor menuItems = eatHelper.getAllMenuItems();
+        // Cursor menuItems = eatHelper.getAllMenuItems();
 
         String menuItemDates = EatContract.MenuItem.COLUMN_NAME_DATE;
         int currentDate = Calendar.DAY_OF_MONTH;
