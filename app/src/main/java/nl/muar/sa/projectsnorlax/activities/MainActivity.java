@@ -383,48 +383,53 @@ public class MainActivity extends AppCompatActivity
         }
     }
 
-//    public void fillListWithMenuItems(int position){
-//        List<Calendar> weekRange= calculateDateRange(new Date());
-//
-//        Date dayStart = weekRange.get(0).getTime();
-//        weekRange.get(0).add(Calendar.DAY_OF_WEEK, position);
-//        Date dayEnd = weekRange.get(0).getTime();
-//        Cursor cursor = eatHelper.getMenuItemGivenDateAndLocation(currentId, dayStart, dayEnd);
-//        cursor.moveToFirst();
-//        MenuItemCursorAdapter menuAdapter = new MenuItemCursorAdapter(this, cursor);
-//        Log.i(TAG, cursor.getString(cursor.getColumnIndexOrThrow(EatContract.MenuItem.COLUMN_NAME_NAME)));
-//        ListView dayView = (ListView)pager.getChildAt(position).findViewById(R.id.menu_item_list);
-//        dayView.setAdapter(menuAdapter);
-//    }
+    public void fillListWithMenuItems(int position){
+        List<Calendar> weekRange= calculateDateRange(new Date());
 
-//    public List<Calendar> calculateDateRange(Date currentDate){
-//        List<Calendar> weekRange = new ArrayList<Calendar>();
-//        Calendar cStart = Calendar.getInstance();
-//        cStart.setFirstDayOfWeek(Calendar.MONDAY);
-//        cStart.setTime(currentDate);
-//        int today = cStart.get(Calendar.DAY_OF_WEEK);
-//        cStart.add(Calendar.DAY_OF_WEEK, - today + Calendar.MONDAY);
-//        cStart.set(Calendar.YEAR, Calendar.MONTH, Calendar.DATE, 0, 0, 0);
-//        weekRange.add(cStart);
-//        Log.i(TAG, "Week begins: " + cStart.getTime());
-//        cStart.add(Calendar.DAY_OF_WEEK, - today + Calendar.FRIDAY);
-//        Log.i(TAG, "Week ends: " + cStart.getTime());
-//        weekRange.add(cStart);
-//        return weekRange;
-//    }
+        Date dayStart = weekRange.get(0).getTime();
+        weekRange.get(0).add(Calendar.DAY_OF_WEEK, position);
+        Date dayEnd = weekRange.get(0).getTime();
+        Cursor cursor = eatHelper.getMenuItemGivenDateAndLocation(currentId, dayStart, dayEnd);
+        cursor.moveToFirst();
+        MenuItemCursorAdapter menuAdapter = new MenuItemCursorAdapter(this, cursor);
+        Log.i(TAG, cursor.getString(cursor.getColumnIndexOrThrow(EatContract.MenuItem.COLUMN_NAME_NAME)));
+        ListView dayView = (ListView)pager.getChildAt(position).findViewById(R.id.menu_item_list);
+        dayView.setAdapter(menuAdapter);
+    }
+
+    public List<Calendar> calculateDateRange(Date currentDate){
+        List<Calendar> weekRange = new ArrayList<>();
+        Calendar cStart = Calendar.getInstance();
+        cStart.setFirstDayOfWeek(Calendar.MONDAY);
+        cStart.setTime(currentDate);
+        int today = cStart.get(Calendar.DAY_OF_WEEK);
+        cStart.add(Calendar.DAY_OF_WEEK, - today + Calendar.MONDAY);
+        cStart.set(Calendar.YEAR, Calendar.MONTH, Calendar.DATE, 0, 0, 0);
+        weekRange.add(cStart);
+        Log.i(TAG, "Week begins: " + cStart.getTime());
+        cStart.add(Calendar.DAY_OF_WEEK, - today + Calendar.FRIDAY);
+        Log.i(TAG, "Week ends: " + cStart.getTime());
+        weekRange.add(cStart);
+        return weekRange;
+    }
 
     public void startOpenChecker(){
         cdt = new CountDownTimer(120_000, 30_000){
             public void onTick(long millisUntilFinished){
 
                 Cursor cursor = eatHelper.getRestaurantOpeningClosingTimesGivenLocation(currentId);
-                cursor.moveToFirst();
-                String openString = cursor.getString(cursor.getColumnIndexOrThrow(EatContract.Restaurant.COLUMN_NAME_OPENING_TIME));
-                String closeString = cursor.getString(cursor.getColumnIndexOrThrow(EatContract.Restaurant.COLUMN_NAME_CLOSING_TIME));
+                if (cursor != null && cursor.moveToFirst()) {
+                    String openString = cursor.getString(cursor.getColumnIndexOrThrow(EatContract.Restaurant.COLUMN_NAME_OPENING_TIME));
+                    String closeString = cursor.getString(cursor.getColumnIndexOrThrow(EatContract.Restaurant.COLUMN_NAME_CLOSING_TIME));
 
-                String outputString = compareTime(openString, closeString, new Date());
-                TextView timeText = (TextView) findViewById(R.id.closingtimetext);
-                timeText.setText(outputString);
+                    String outputString = compareTime(openString, closeString, new Date());
+                    TextView timeText = (TextView) findViewById(R.id.closingtimetext);
+                    timeText.setText(outputString);
+                } else {
+                    //throw android.database.CursorIndexOutOfBoundsException;
+                }
+
+
             }
 
             public void onFinish(){
