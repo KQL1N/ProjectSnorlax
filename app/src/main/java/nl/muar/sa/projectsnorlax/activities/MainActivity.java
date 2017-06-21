@@ -112,6 +112,23 @@ public class MainActivity extends AppCompatActivity
         PageListener listener = new PageListener();
         pager.setOnPageChangeListener(listener);
 
+        // if network connectivity = true;
+        RequestQueue queue = Volley.newRequestQueue(getApplicationContext());
+        String url = "http://10.6.7.73:8080/weeksmen";
+
+        StringRequest menuRequest = new StringRequest(Request.Method.GET, url, new Response.Listener<String>() {
+            @Override
+            public void onResponse(String response) {
+                // Simon's Parsing Stuff
+            }
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+
+            }
+        });
+        queue.add(menuRequest);
+
     }
 
     private class PageListener extends ViewPager.SimpleOnPageChangeListener
@@ -125,40 +142,6 @@ public class MainActivity extends AppCompatActivity
             currentDayText.setText(days[currentPage]);
         }
 
-        View view1 = (View) findViewById(R.id.view1);
-        View view2 = (View) findViewById(R.id.view2);
-        View view3 = (View) findViewById(R.id.view3);
-        View view4 = (View) findViewById(R.id.view4);
-        View view5 = (View) findViewById(R.id.view5);
-        View view6 = (View) findViewById(R.id.view6);
-
-        final List<View> viewBoxList = new ArrayList<View>();
-        viewBoxList.add(0, view1);
-        viewBoxList.add(1, view2);
-        viewBoxList.add(2, view3);
-        viewBoxList.add(3, view4);
-        viewBoxList.add(4, view5);
-        viewBoxList.add(5, view6);
-
-
-        // if network connectivity = true;
-        RequestQueue queue = Volley.newRequestQueue(this);
-        String url = "http://10.6.7.73:8080/weeksmen";
-
-        StringRequest menuRequest = new StringRequest(Request.Method.GET, url, new Response.Listener<String>() {
-                @Override
-                public void onResponse(String response) {
-                    // Simon's Parsing Stuff
-                }
-            }, new Response.ErrorListener() {
-            @Override
-            public void onErrorResponse(VolleyError error) {
-                for (View view : viewBoxList) {
-                    view.setBackgroundColor(getResources().getColor(R.color.red));
-                }
-            }
-        });
-        queue.add(menuRequest);
     }
 
     @Override
