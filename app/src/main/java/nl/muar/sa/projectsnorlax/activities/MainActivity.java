@@ -132,22 +132,22 @@ public class MainActivity extends AppCompatActivity
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
         // View Pager
-//        pager = (ViewPager) findViewById(R.id.pagingview);
-//        adapter = new Page(getSupportFragmentManager());
-//        pager.setAdapter(adapter);
-//        PageListener listener = new PageListener();
-//        pager.setOnPageChangeListener(listener);
+        pager = (ViewPager) findViewById(R.id.pagingview);
+        adapter = new Page(getSupportFragmentManager());
+        pager.setAdapter(adapter);
+        PageListener listener = new PageListener();
+        pager.setOnPageChangeListener(listener);
 
     }
 
-//        public int currentPage = 0;
-//
-//        public void onPageSelected(int position)
-//        {
-//            Log.i(TAG, "page selected " + position);
-//            currentPage= position;
-//            currentDayText.setText(days[currentPage]);
-//        }
+        public int currentPage = 0;
+
+        public void onPageSelected(int position)
+        {
+            Log.i(TAG, "page selected " + position);
+            currentPage= position;
+            currentDayText.setText(days[currentPage]);
+        }
 
     public void getMenuRequest() {
         boolean netConnection = isNetworkAvailable();
@@ -215,28 +215,20 @@ public class MainActivity extends AppCompatActivity
 
         }
 
-        // View Pager
-//        pager = (ViewPager) findViewById(R.id.pagingview);
-//        adapter = new Page(getSupportFragmentManager());
-//        pager.setAdapter(adapter);
-//        pager.setOffscreenPageLimit(5);
-//        PageListener listener = new PageListener();
-//        pager.setOnPageChangeListener(listener);
-//        eatHelper = new EatHelper(this);
     }
     
-//    private class PageListener extends ViewPager.SimpleOnPageChangeListener
-//    {
-//        public int currentPage = 0;
-//
-//        public void onPageSelected(int position)
-//        {
-//            Log.i(TAG, "page selected " + position);
-//            currentPage= position;
-//            currentDayText.setText(days[currentPage]);
-//            fillListWithMenuItems(position);
-//        }
-//    }
+    private class PageListener extends ViewPager.SimpleOnPageChangeListener
+    {
+        public int currentPage = 0;
+
+        public void onPageSelected(int position)
+        {
+            Log.i(TAG, "page selected " + position);
+            currentPage= position;
+            currentDayText.setText(days[currentPage]);
+            fillListWithMenuItems(position);
+        }
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu)
@@ -384,7 +376,7 @@ public class MainActivity extends AppCompatActivity
     }
 
     public void fillListWithMenuItems(int position){
-        List<Calendar> weekRange= calculateDateRange(new Date());
+        List<Calendar> weekRange = calculateDateRange(new Date());
 
         Date dayStart = weekRange.get(0).getTime();
         weekRange.get(0).add(Calendar.DAY_OF_WEEK, position);
@@ -392,8 +384,8 @@ public class MainActivity extends AppCompatActivity
         Cursor cursor = eatHelper.getMenuItemGivenDateAndLocation(currentId, dayStart, dayEnd);
         cursor.moveToFirst();
         MenuItemCursorAdapter menuAdapter = new MenuItemCursorAdapter(this, cursor);
-        Log.i(TAG, cursor.getString(cursor.getColumnIndexOrThrow(EatContract.MenuItem.COLUMN_NAME_NAME)));
-        ListView dayView = (ListView)pager.getChildAt(position).findViewById(R.id.menu_item_list);
+        //Log.i(TAG, cursor.getString(cursor.getColumnIndexOrThrow(EatContract.MenuItem.COLUMN_NAME_NAME)));
+        ListView dayView = (ListView) pager.getChildAt(position).findViewById(R.id.menu_item_list);
         dayView.setAdapter(menuAdapter);
     }
 
